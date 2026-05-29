@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>DROP · 躲避手感验证原型</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box;}
+  html,body{width:100%;height:100%;overflow:hidden;background:#000;font-family:"PingFang SC","Microsoft YaHei",sans-serif;}
+  #app{position:fixed;inset:0;}
+  #ui{position:fixed;inset:0;pointer-events:none;z-index:10;}
+  .warn{position:absolute;width:120px;height:120px;opacity:0;transition:opacity .08s;text-align:center;transform:translate(-50%,-50%);}
+  .warn .ring{position:absolute;inset:0;} .warn .ring circle{fill:none;stroke-width:8;stroke:#33ddff;}
+  .warn .key{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:40px;font-weight:900;color:#fff;text-shadow:0 0 12px #000;}
+  .warn .lbl{position:absolute;top:120px;left:0;right:0;color:#fff;font-size:15px;letter-spacing:1px;text-shadow:0 0 8px #000;}
+  #warnTop{left:50%;top:22%;} #warnLeft{left:24%;top:52%;} #warnRight{left:76%;top:52%;}
+  #hud{position:absolute;left:50%;top:5%;transform:translateX(-50%);text-align:center;}
+  #scoreNum{color:#fff;font-size:52px;font-weight:900;text-shadow:0 0 16px rgba(255,80,40,.6);}
+  #combo{color:#ffd23b;font-size:20px;font-weight:700;letter-spacing:1px;margin-top:2px;height:24px;text-shadow:0 0 10px #000;}
+  #flyScore{position:absolute;left:50%;top:38%;transform:translateX(-50%);color:#7CFF9B;font-size:40px;font-weight:900;opacity:0;text-shadow:0 0 14px rgba(60,255,140,.7);}
+  #hitFlash{position:fixed;inset:0;background:radial-gradient(circle,rgba(200,0,0,0) 30%,rgba(220,20,20,.5) 100%);opacity:0;transition:opacity .1s;z-index:15;pointer-events:none;}
+  #over{position:fixed;inset:0;background:rgba(0,0,0,.82);z-index:20;display:none;flex-direction:column;align-items:center;justify-content:center;gap:18px;}
+  #over h2{color:#b71a0e;font-size:64px;font-weight:900;letter-spacing:12px;}
+  #over .s{color:#fff;font-size:24px;} #over .b{color:#cfc8ba;font-size:17px;}
+  #over .tip{color:#7CFF9B;font-size:22px;font-weight:700;margin-top:8px;animation:blink 1s infinite;}
+  @keyframes blink{50%{opacity:.3;}}
+  #start{position:fixed;inset:0;background:#0a0908;z-index:30;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:22px;}
+  #start h1{color:#e8e2d6;font-size:54px;letter-spacing:14px;font-weight:900;}
+  #start .d{color:#8a8472;font-size:16px;line-height:2;text-align:center;} #start b{color:#ffd23b;}
+  #startBtn{background:none;border:1px solid #6a4;color:#9c6;padding:14px 44px;font-size:20px;letter-spacing:6px;border-radius:8px;cursor:pointer;}
+  #startBtn:hover{background:#9c6;color:#0a0908;}
+  #ctrlHint{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);color:rgba(255,255,255,.55);font-size:15px;letter-spacing:2px;z-index:11;text-shadow:0 1px 4px #000;}
+</style>
+<script>
+function showErr(msg){var b=document.getElementById('errbox');if(!b){b=document.createElement('div');b.id='errbox';b.style.cssText='position:fixed;left:0;right:0;top:0;z-index:99999;background:#a00;color:#fff;font:13px monospace;padding:10px;white-space:pre-wrap;';(document.body||document.documentElement).appendChild(b);}b.textContent+='❌ '+msg+'\n';}
+addEventListener('error',e=>showErr((e.message||(e.target&&e.target.src)||e.error||'加载失败')+'  @'+String(e.filename||(e.target&&e.target.src)||'').split('/').pop()+':'+(e.lineno||'')),true);
+addEventListener('unhandledrejection',e=>showErr('Promise: '+(e.reason&&e.reason.message||e.reason)));
+</script>
+</head>
+<body>
+<div id="app"></div>
+<div id="ui">
+  <div id="hud"><div id="scoreNum">0</div><div id="combo"></div></div>
+  <div id="flyScore"></div>
+  <div class="warn" id="warnTop"><svg class="ring" viewBox="0 0 120 120"><circle cx="60" cy="60" r="52"/></svg><div class="key">↓</div><div class="lbl">蹲下</div></div>
+  <div class="warn" id="warnLeft"><svg class="ring" viewBox="0 0 120 120"><circle cx="60" cy="60" r="52"/></svg><div class="key">→</div><div class="lbl">向右闪</div></div>
+  <div class="warn" id="warnRight"><svg class="ring" viewBox="0 0 120 120"><circle cx="60" cy="60" r="52"/></svg><div class="key">←</div><div class="lbl">向左闪</div></div>
+</div>
+<div id="hitFlash"></div>
+<div id="ctrlHint">← 左闪　·　→ 右闪　·　↓ 蹲下　（也可用 A / D / S）</div>
+<div id="over"><h2>你 死 了</h2><div class="s"></div><div class="b"></div><div class="tip">按 空格 再来一次</div></div>
+<div id="start"><h1>DROP · 躲避手感测试</h1>
+  <div class="d">地震来了，你站在原地。<b>红色的危险物</b>会从你正前方<b>由远及近</b>飞来——<br>头顶砸下 → 按 <b>↓ 蹲下</b>；左边飞来 → 按 <b>→ 右闪</b>；右边 → 按 <b>← 左闪</b>。<br>每个危险出现时，屏幕对应位置会亮<b>信号圈</b>提示该按的键。<br>危险还在飞的全程按对都算躲过，<b>越往后越快</b>。被砸=死，空格重开。</div>
+  <button id="startBtn">▶ 开 始</button>
+</div>
+
+<script type="importmap">
+{ "imports": { "three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/" }}
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+
+const app=document.getElementById('app');
+const renderer=new THREE.WebGLRenderer({antialias:true});
+renderer.setSize(innerWidth,innerHeight); renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+renderer.toneMapping=THREE.ACESFilmicToneMapping; app.appendChild(renderer.domElement);
+const scene=new THREE.Scene(); scene.fog=new THREE.FogExp2(0x0a0806,0.045);
+const camera=new THREE.PerspectiveCamera(64,innerWidth/innerHeight,0.1,100);
+const BASE=new THREE.Vector3(0,1.6,3.5);
+
+scene.add(new THREE.AmbientLight(0xffe6c0,0.55));
+const sun=new THREE.DirectionalLight(0xffd9a0,1.3); sun.position.set(-5,8,3); scene.add(sun);
+const cl=new THREE.PointLight(0xfff0d0,0.8,22); cl.position.set(0,2.7,-1); scene.add(cl);
+
+const mW=new THREE.MeshStandardMaterial({color:0x6b6258,roughness:.95});
+const mF=new THREE.MeshStandardMaterial({color:0x3a332b,roughness:.9});
+const mD=new THREE.MeshStandardMaterial({color:0x8a6b4a,roughness:.7});
+const mM=new THREE.MeshStandardMaterial({color:0x9aa0a6,roughness:.4,metalness:.6});
+function box(w,h,d,m,x,y,z){const e=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),m);e.position.set(x,y,z);scene.add(e);return e;}
+box(16,0.2,22,mF,0,0,-4); box(16,0.2,22,mW,0,3,-4); box(16,3,0.3,mW,0,1.5,-10);
+box(0.3,3,22,mW,-7,1.5,-4); box(0.3,3,22,mW,7,1.5,-4);
+for(let i=-1;i<=1;i++) box(0.3,0.06,7,new THREE.MeshStandardMaterial({color:0xfff4e0,emissive:0xffe9c0,emissiveIntensity:1.1}),i*3,2.92,-3);
+for(let i=0;i<3;i++){ const z=-3-i*3; box(2.0,0.12,1.0,mD,-3.5,1.0,z); box(2.0,0.12,1.0,mD,3.5,1.0,z); box(0.55,0.38,0.05,mM,-3.5,1.35,z-0.25); box(0.55,0.38,0.05,mM,3.5,1.35,z-0.25); }
+
+const composer=new EffectComposer(renderer); composer.addPass(new RenderPass(scene,camera));
+composer.addPass(new UnrealBloomPass(new THREE.Vector2(innerWidth,innerHeight),0.55,0.55,0.82)); composer.addPass(new OutputPass());
+
+// 音频合成
+let ac=null,rg=null,heart=null;
+function initAudio(){ try{ ac=new (window.AudioContext||window.webkitAudioContext)(); }catch(e){return;}
+  rg=ac.createGain(); rg.gain.value=0; rg.connect(ac.destination);
+  const o=ac.createOscillator(); o.type='sine'; o.frequency.value=40; o.connect(rg); o.start();
+  const n=ac.createBufferSource(); const b=ac.createBuffer(1,ac.sampleRate*2,ac.sampleRate); const d=b.getChannelData(0); let l=0;
+  for(let i=0;i<d.length;i++){const w=Math.random()*2-1; d[i]=(l+0.02*w)/1.02; l=d[i]; d[i]*=3.2;}
+  n.buffer=b; n.loop=true; const f=ac.createBiquadFilter(); f.type='lowpass'; f.frequency.value=180; n.connect(f); f.connect(rg); n.start();
+  rg.gain.setTargetAtTime(0.5,ac.currentTime,0.5);
+}
+function thud(ok){ if(!ac)return; const o=ac.createOscillator(),g=ac.createGain();
+  o.type='sine'; o.frequency.setValueAtTime(ok?440:150,ac.currentTime); o.frequency.exponentialRampToValueAtTime(ok?200:50,ac.currentTime+0.12);
+  o.connect(g); g.connect(ac.destination); g.gain.setValueAtTime(0.4,ac.currentTime); g.gain.exponentialRampToValueAtTime(0.001,ac.currentTime+0.22); o.start(); o.stop(ac.currentTime+0.22); }
+function crash(){ if(!ac)return; const s=ac.createBufferSource(),g=ac.createGain(); const b=ac.createBuffer(1,ac.sampleRate*0.6,ac.sampleRate); const d=b.getChannelData(0);
+  for(let i=0;i<d.length;i++)d[i]=(Math.random()*2-1)*Math.pow(1-i/d.length,2); s.buffer=b; s.connect(g); g.connect(ac.destination);
+  g.gain.setValueAtTime(0.8,ac.currentTime); g.gain.exponentialRampToValueAtTime(0.001,ac.currentTime+0.6); s.start(); }
+function heartbeat(rate){ if(heart)clearInterval(heart); if(!ac)return; const beat=()=>{[0,0.16].forEach((dt,i)=>{const t=ac.currentTime+dt; const o=ac.createOscillator(),g=ac.createGain(); o.frequency.value=i?42:55; o.connect(g); g.connect(ac.destination); g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(0.4,t+0.02); g.gain.exponentialRampToValueAtTime(0.001,t+0.2); o.start(t); o.stop(t+0.22);});}; beat(); heart=setInterval(beat,rate); }
+function stopHeart(){ if(heart){clearInterval(heart); heart=null;} }
+
+// ===== 危险物（全部在正前方视野内、带红光、由远及近）=====
+const dangerMat=()=>new THREE.MeshStandardMaterial({color:0x8a2418,emissive:0xff2a14,emissiveIntensity:0.9,roughness:.6});
+const LANES={
+  // start=远处出现点, end=逼近终点(在玩家前方, 留距离不怼脸), key=该按的键, warn=对应HUD
+  top:  {key:'down', warn:'warnTop',  size:[1.0,0.6,1.0], start:new THREE.Vector3(0,4.2,-1.5),  end:new THREE.Vector3(0,2.0,-1.0)},
+  left: {key:'right',warn:'warnLeft', size:[0.8,1.6,0.8], start:new THREE.Vector3(-4.5,1.4,-7), end:new THREE.Vector3(-1.9,1.4,-1.2)},
+  right:{key:'left', warn:'warnRight',size:[0.8,1.6,0.8], start:new THREE.Vector3(4.5,1.4,-7),  end:new THREE.Vector3(1.9,1.4,-1.2)},
+};
+let threats=[], score=0, combo=0, lastDodge={dir:null,t:-9}, dodge=new THREE.Vector3(), running=false, t=0;
+let spawnGap=1.9, warnTime=1.8, sinceSpawn=1.2, shake=0;
+let lookYaw=0, lookPitch=0;
+const clock=new THREE.Clock(); const $=id=>document.getElementById(id);
+
+function spawnThreat(){ const keys=Object.keys(LANES); const type=keys[Math.floor(Math.random()*keys.length)]; const L=LANES[type];
+  const m=box(L.size[0],L.size[1],L.size[2],dangerMat(),L.start.x,L.start.y,L.start.z);
+  threats.push({type,L,mesh:m,born:t,hit:t+warnTime,resolved:false,dodged:false}); }
+function setWarn(el,frac,active){ const e=$(el); e.style.opacity=active?1:0; if(!active)return;
+  const c=e.querySelector('circle'); const C=2*Math.PI*52; c.style.strokeDasharray=C; c.style.strokeDashoffset=C*(1-frac);
+  const col=frac<0.4?'#ff3b1f':'#33ddff'; c.style.stroke=col; c.style.filter='drop-shadow(0 0 8px '+col+')'; }
+
+addEventListener('mousemove',e=>{ lookYaw=(e.clientX/innerWidth-0.5)*0.8; lookPitch=(e.clientY/innerHeight-0.5)*-0.4; });
+addEventListener('keydown',e=>{
+  if(e.code==='Space'&&!running){ restart(); return; }
+  let dir=null;
+  if(e.code==='ArrowLeft'||e.code==='KeyA')dir='left'; else if(e.code==='ArrowRight'||e.code==='KeyD')dir='right'; else if(e.code==='ArrowDown'||e.code==='KeyS')dir='down';
+  if(dir){ lastDodge={dir,t}; if(dir==='left')dodge.x=-0.6; else if(dir==='right')dodge.x=0.6; else dodge.y=-0.7; }
+});
+
+function flyScore(txt,color){ const f=$('flyScore'); f.textContent=txt; f.style.color=color; f.style.transition='none'; f.style.opacity=1; f.style.transform='translateX(-50%) translateY(0)';
+  requestAnimationFrame(()=>{ f.style.transition='all .6s'; f.style.opacity=0; f.style.transform='translateX(-50%) translateY(-40px)'; }); }
+function resolveThreat(th){ th.resolved=true; th.mesh.visible=false;
+  if(th.dodged){ const add=10+combo*2; score+=add; combo++; thud(true); flyScore('+'+add,'#7CFF9B'); $('scoreNum').textContent=score; $('combo').textContent=combo>1?combo+' 连击!':'';
+    spawnGap=Math.max(0.7,spawnGap*0.96); warnTime=Math.max(0.8,warnTime*0.98); }
+  else gameOver(); }
+function gameOver(){ running=false; crash(); shake=1.5; stopHeart();
+  const best=Math.max(score,+(localStorage.getItem('dodge_best')||0)); localStorage.setItem('dodge_best',best);
+  $('hitFlash').style.opacity=1; setTimeout(()=>$('hitFlash').style.opacity=0,250);
+  document.querySelector('#over .s').textContent='躲过 '+score+' 分'; document.querySelector('#over .b').textContent='历史最高 '+best+' 分'; $('over').style.display='flex';
+  ['warnTop','warnLeft','warnRight'].forEach(el=>$(el).style.opacity=0); }
+function restart(){ threats.forEach(th=>scene.remove(th.mesh)); threats=[]; score=0; combo=0; spawnGap=1.9; warnTime=1.8; sinceSpawn=1.2; shake=0;
+  lastDodge={dir:null,t:-9}; dodge.set(0,0,0); $('scoreNum').textContent='0'; $('combo').textContent=''; $('over').style.display='none'; running=true; heartbeat(560); }
+$('startBtn').onclick=()=>{ initAudio(); $('start').style.display='none'; restart(); };
+
+// 调试钩子：CDP 可读游戏状态（开发期用，自测后可删）
+window.__g=()=>({score,combo,running,over:$('over').style.display,threats:threats.filter(x=>!x.resolved).map(x=>({type:x.type,frac:+((x.hit-t)/(x.hit-x.born)).toFixed(2),dodged:x.dodged}))});
+window.__test=()=>{ $('start').style.display='none'; ['top','left','right'].forEach(type=>{ const L=LANES[type]; const m=box(L.size[0],L.size[1],L.size[2],dangerMat(),0,0,0); m.position.lerpVectors(L.end,L.start,0.4); threats.push({type,L,mesh:m,born:t,hit:t+999,resolved:false,dodged:false}); }); setWarn('warnTop',0.5,true); setWarn('warnLeft',0.5,true); setWarn('warnRight',0.5,true); composer.render(); return 'test-spawned'; };
+
+function animate(){ requestAnimationFrame(animate); const dt=Math.min(clock.getDelta(),0.05); t+=dt;
+  dodge.multiplyScalar(1-Math.min(dt*9,1)); shake*=(1-Math.min(dt*3,1));
+  const sx=(Math.random()-0.5)*0.06*shake, sy=(Math.random()-0.5)*0.06*shake;
+  camera.position.set(BASE.x+dodge.x+sx, BASE.y+dodge.y+sy, BASE.z);
+  camera.lookAt(BASE.x+dodge.x+lookYaw*2.2, 1.35+lookPitch*1.8, -4);
+
+  if(running){
+    sinceSpawn+=dt; if(sinceSpawn>=spawnGap){ sinceSpawn=0; spawnThreat(); }
+    const ws={warnTop:0,warnLeft:0,warnRight:0}, wa={warnTop:false,warnLeft:false,warnRight:false};
+    for(const th of threats){ if(th.resolved)continue;
+      const frac=Math.max(0,(th.hit-t)/(th.hit-th.born)); // 1=刚出现, 0=砸到
+      th.mesh.position.lerpVectors(th.L.end,th.L.start,frac); // 由远(start)及近(end)
+      th.mesh.rotation.x+=dt*1.5; th.mesh.rotation.z+=dt*1.2;
+      // 危险还在飞的全程，按对方向即锁定"躲过"（允许提前预判）
+      if(!th.dodged && lastDodge.dir===th.L.key && lastDodge.t>=th.born) th.dodged=true;
+      const el=th.L.warn; if(!wa[el]||frac<ws[el]){ ws[el]=frac; wa[el]=true; }
+      if(t>=th.hit) resolveThreat(th);
+    }
+    ['warnTop','warnLeft','warnRight'].forEach(el=>setWarn(el,ws[el],wa[el]));
+    cl.intensity=Math.random()<0.1?0.2:0.8;
+    if(rg) rg.gain.setTargetAtTime(0.45+0.35*(1.8-warnTime),ac.currentTime,0.4);
+  }
+  threats=threats.filter(th=>{ if(th.resolved){ scene.remove(th.mesh); return false; } return true; });
+  composer.render();
+}
+animate();
+addEventListener('resize',()=>{ camera.aspect=innerWidth/innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth,innerHeight); composer.setSize(innerWidth,innerHeight); });
+</script>
+</body>
+</html>

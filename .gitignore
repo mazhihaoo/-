@@ -1,0 +1,9 @@
+# macOS
+.DS_Store
+
+# 编辑器
+.vscode/
+.idea/
+
+# 依赖（本项目纯前端零依赖，预留）
+node_modules/
