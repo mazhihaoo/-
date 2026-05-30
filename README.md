@@ -6,13 +6,13 @@
 
 ## 🔴 当前主力文件 = `game_v3.html`（最新最完整，别动旧的）
 
-游戏迭代过很多版，**现在在做的、最完整的是 `game_v3.html`**（连续二层单元楼 + 真实下楼 + 地震玩法）。其它 `index.html`/`game.html`/`game_v2.html` 是旧版，别在上面继续开发。
+游戏迭代过很多版，**开发改这个文件：`game_v3.html`**（连续二层单元楼 + 真实下楼 + 地震玩法）。根目录的 `index.html` 是它的**正式发布副本**（在线版/打包提交用，内容和 game_v3 完全一样）——**开发时改 `game_v3.html`，发布前再复制成 `index.html`**。`game.html`/`game_v2.html` 是早期旧版，别动。
 
 ## 🎮 想玩最新版？
 
 ### 在线玩（最简单，push 后 1~2 分钟生效）
-👉 **https://starsky618.github.io/drop/game_v3.html**
-（注意网址结尾是 `/game_v3.html`！直接打开 `starsky618.github.io/drop/` 是旧 demo）
+👉 **https://starsky618.github.io/drop/**
+（直接打开根网址就是最新版；`/game_v3.html` 也能开，内容一样）
 ⚠️ 用**电脑 Chrome + 戴耳机**，键鼠操作。
 
 ### 怎么操作
@@ -54,11 +54,12 @@ stairtest.html        射线下楼+墙碰撞 核心技术验证页
 CLAUDE.md             ★给 AI 助手看★ 当前进度/架构/技术坑/剩余/交付红线 — 用 AI 接着开发先读它
 CHANGELOG.md          里程碑时间线
 docs/01,02            研究报告 + 设计文档(铁律/地震正解表/分工)
-index.html / game.html / game_v2.html   旧版,别动
+index.html            ★发布入口★ game_v3 的正式副本(在线版/打包提交用,内容同 game_v3)
+game.html / game_v2.html  早期旧版,别动
 ```
 
 ## 🤖 用 AI（Claude/Codex 等）接着开发？
 **先让它读 `CLAUDE.md`** —— 里面有当前真实进度、game_v3 架构、踩过的技术坑（yaw 朝向/连续地板验证/agent 视觉需人验收）、剩余工作、交付红线（8MB 离线、Three.js 已本地化、提交三件套截止 5.31 中午）。
 
 ## 当前进度
-**连续二层单元楼版 game_v3 完整可玩**：卧室醒来→地震→边逃边躲坠落物→下楼→单元门通关，SCP 暖灰氛围+精细家具+音频。剩余与交付清单见 `CLAUDE.md`。
+**game_v3 / index.html 完整可玩、交付就绪**：卧室醒来 → 地震 → 边逃边躲坠落物 → 穿过 SCP 破败客厅 → 下楼(带黑铁栏杆) → 冲出单元门(通关看室外单元楼结局)；被砸死有死亡黑盒聚光揭示死因。纯离线、8MB 内。剩余与交付清单见 `CLAUDE.md`。
