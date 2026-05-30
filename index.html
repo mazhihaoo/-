@@ -2181,15 +2181,6 @@ document.getElementById('b').onclick=()=>{initAudio();document.getElementById('s
 O('dretry').onclick=()=>{startGame();renderer.domElement.requestPointerLock&&renderer.domElement.requestPointerLock();};
 function canMove(from,to){const dir=new THREE.Vector3().subVectors(to,from);const dist=dir.length();if(dist<1e-5)return true;dir.normalize();
   wallRay.set(new THREE.Vector3(from.x,from.y-0.7,from.z),dir);wallRay.far=dist+0.3;return wallRay.intersectObjects(walls,false).length===0;}
-// 【开发期调试钩子,10 个房间全集成完/最终交付前再删】__walk 验主路径连续,__view 瞬移相机验收支线房间
-window.__walk=()=>{let p=player.clone(),logs=[];for(let i=0;i<420;i++){const to=new THREE.Vector3(p.x+0.1,p.y,p.z);if(canMove(p,to))p.x=to.x;else{logs.push("卡墙@x="+p.x.toFixed(1));break;}downRay.set(new THREE.Vector3(p.x,p.y+1.8,p.z),new THREE.Vector3(0,-1,0));downRay.far=12;const h=downRay.intersectObjects(grounds,false);if(h.length)p.y=h[0].point.y+EYE;else{logs.push("掉地板@x="+p.x.toFixed(1));break;}}return JSON.stringify({finalX:+p.x.toFixed(1),finalY:+p.y.toFixed(2),reachedExit:Math.abs(p.x-28.5)<2.2,logs});};
-window.__view=(x,z,y2,p2)=>{player.set(x,EYE,z);yaw=y2;if(p2!==undefined)pitch=p2;};
-// [临时调试钩子·交付前删] 仅供 CDP 截图验证:直接唤出鉴定报告/捕获报错
-window.__err=null;addEventListener('error',e=>{window.__err=(e.message||'')+' @'+(e.lineno||'?');});
-window.__report=(opt)=>{const o=opt||{};stats.quakeMs=performance.now()-((o.sec||13.4)*1000);stats.escapeMs=performance.now();stats.nearMiss=(o.nearMiss!=null?o.nearMiss:1);stats.tookCover=(o.tookCover!==undefined?o.tookCover:true);stats.elevatorAvoided=(o.elevatorAvoided!==undefined?o.elevatorAvoided:true);showReport();return'ok';};
-window.__dbg=(o)=>{o=o||{};document.getElementById('start').style.display='none';if(o.phase)phase=o.phase;if(o.quakeT!=null)quakeT=o.quakeT;if(o.coverHeld!=null)coverHeld=o.coverHeld;if(o.mainShockDone!=null)mainShockDone=o.mainShockDone;if(o.px!=null)player.x=o.px;if(o.pz!=null)player.z=o.pz;if(o.yaw!=null)yaw=o.yaw;return JSON.stringify({phase,quakeT:+(+quakeT).toFixed(2),obj:O('obj').textContent,marker:safeGroup.visible,tookCover:stats.tookCover,coverHeld:+coverHeld.toFixed(2),err:window.__err});};
-// 手动跑一帧游戏逻辑(绕过被节流的rAF):用真实 stepGame(dt) 推进 n 步,再手动渲染。可验证主震循环/提示切换/tookCover。
-window.__step=(o)=>{o=o||{};document.getElementById('start').style.display='none';const dt=o.dt||0.05,n=o.n||1;if(o.px!=null)player.x=o.px;if(o.pz!=null)player.z=o.pz;if(o.yaw!=null)yaw=o.yaw;if(o.pitch!=null)pitch=o.pitch;for(let i=0;i<n;i++)stepGame(dt);renderer.render(scene,camera);return JSON.stringify({phase,quakeT:+(+quakeT).toFixed(2),obj:O('obj').textContent,marker:safeGroup.visible,tookCover:stats.tookCover,coverHeld:+coverHeld.toFixed(2),hazards:hazards.length,won,err:window.__err});};
 const clock=new THREE.Clock();
 // stepGame(dt):一帧游戏逻辑(移动/地面跟随/地震/坠落物/通关/渲染)。抽出来便于手动单步验证;animate 负责 rAF 节奏。
 function stepGame(dt){
