@@ -1364,6 +1364,13 @@ for(let i=0;i<SN;i++){ const topY=-(i+1)*SR; const x=15+0.27+i*SRUN;
   ground(SRUN+0.02,0.3,4,x,topY-0.15,0,mStep); }
 wallB((20-15),H,0.3,17.5,H/2-1.5,-2); wallB((20-15),H,0.3,17.5,H/2-1.5,2);
 warmLamp(17.5,1.0,0);
+// 楼梯黑铁栏杆(立柱+斜扶手,对齐楼梯坡度)
+const mIron=new THREE.MeshStandardMaterial({color:0x1a1b1d,roughness:.5,metalness:.7});
+for(let i=0;i<SN;i++){const xx=15+0.27+i*SRUN;const ty=-(i+0.5)*SR;
+  deco(0.05,0.85,0.05,xx,ty+0.42,-1.85,mIron); deco(0.05,0.85,0.05,xx,ty+0.42,1.85,mIron);}
+const handL=Math.hypot(20-15,0-F1),ang=Math.atan2(0-F1,20-15);
+const hN=new THREE.Mesh(new THREE.BoxGeometry(handL,0.07,0.07),mIron);hN.position.set(17.5,-(SR*SN)/2+0.82,-1.85);hN.rotation.z=ang;hN.castShadow=true;scene.add(hN);
+const hS=new THREE.Mesh(new THREE.BoxGeometry(handL,0.07,0.07),mIron);hS.position.set(17.5,-(SR*SN)/2+0.82,1.85);hS.rotation.z=ang;hS.castShadow=true;scene.add(hS);
 // 一楼 x[20,29]
 ground(9,0.3,4,24.5,F1-0.15,0); deco(9,0.2,4,24.5,F1+H,0);
 wallB(9,H,0.3,24.5,F1+H/2,-2); wallB(9,H,0.3,24.5,F1+H/2,2);
