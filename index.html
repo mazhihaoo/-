@@ -2411,13 +2411,15 @@ function stepGame(dt){
         if(dHaz<0.85&&Math.abs(player.y-effE-h.baseY)<1.5){let dmg=calcHazardDamage();dealDamage(dmg);}
         else if(dHaz<2.3&&sameFloor)stats.nearMiss++;   // 没砸死但落点很近=与死神擦肩,计入鉴定
       }}}}
-  // 关③:电梯诱惑——发亮的电梯井在召唤;走近=坠入断电卡死的铁棺材,绕开走楼梯=明智
+  // 关③:电梯诱惑——发亮的电梯井在召唤;走近按E坐电梯=坠入铁棺材,绕开走楼梯=明智
   if(elevBtn)elevBtn.material.color.setRGB(1,0.55+0.35*Math.sin(performance.now()*0.005),0.08); // 按钮脉动发光
   if(phase==='quake'&&!won&&stats.elevatorAvoided===null){
-    if(Math.hypot(player.x-ELEV.x,player.z-ELEV.z)<ELEV.r){stats.elevatorAvoided=false;die('你冲进了电梯——地震中电梯会瞬间断电、井道变形卡死,变成下不去也出不来的铁棺材。','坠入电梯井','地震时永远走楼梯,绝不坐电梯——电梯一断电就成了出不来的铁棺材。');}
-    else if(player.x>16){stats.elevatorAvoided=true;setObj('✓ 没坐电梯,明智!地震时电梯随时断电卡死——永远走楼梯下去。');} // 上了楼梯=避开了电梯
+    const nearElev=Math.hypot(player.x-ELEV.x,player.z-ELEV.z)<ELEV.r;
+    if(nearElev&&keys['KeyE']&&pickupAction<=0&&!stumbling){stats.elevatorAvoided=false;die('你坐进了电梯——地震中电梯会瞬间断电、井道变形卡死,变成下不去也出不来的铁棺材。','坠入电梯井','地震时永远走楼梯,绝不坐电梯——电梯一断电就成了出不来的铁棺材。');}
+    else if(nearElev&&pickupAction<=0){setObj('⚠ 按 E 乘坐电梯 (地震时坐电梯必死!)');}
+    else if(player.x>16&&!nearElev){stats.elevatorAvoided=true;setObj('✓ 没坐电梯,明智!地震时电梯随时断电卡死——永远走楼梯下去。');} // 上了楼梯=避开了电梯
   }
-  if(!won&&(Math.hypot(player.x-EXIT.x,player.z-EXIT.z)<1.8||Math.hypot(player.x-EXIT2.x,player.z-EXIT2.z)<1.8||Math.hypot(player.x-EXIT3.x,player.z-EXIT3.z)<1.8)){won=true;  // 多出口:正门①/侧门②/逃生梯③任一
+  if(!won&&(Math.hypot(player.x-EXIT.x,player.z-EXIT.z)<1.8||Math.hypot(player.x-EXIT2.x,player.z-EXIT2.z)<1.8)){won=true;  // 多出口:正门①/侧门②(阳台非出口,悬挑结构最危险)
     bgBak=scene.background;fogBak=scene.fog;scene.fog=null;          // 关雾,别让室内浓雾染暗明亮室外
     exitFx=buildExterior(scene,THREE,0,-120,140);cinemaT=0;          // 室外楼建在地下远处独立区,相机切过去
     renderer.toneMappingExposure=1.55;                              // 室外是明亮白天,临时调高曝光(重开还原1.08)
