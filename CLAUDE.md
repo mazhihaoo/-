@@ -38,13 +38,14 @@
 - **历史回正铁律**：曾跑偏成"躲红方块反应游戏"（废弃在 docs/_archive/）。吸引力靠代入+逃生紧张+死亡震撼，不是高频反应。
 
 ## 📋 剩余工作（截止 2026-05-31 中午 12:00）
-> ⚠️ **git ground truth 纠正**（本节最初凭印象写错了，用 git 核实后改正）：以下 4 项 **commit 显示已做**（在 game_v3.html 里）——客厅精细家具(68d201b 橙沙发/电视柜/置物架/茶几/散落碎纸/暖灯,参考图17)、楼梯黑铁栏杆(69edef9)、室外单元楼外景结局(56d2007 图20风格6层公寓楼+草地+蓝天)、Three.js本地文件(b3e69ab)。
-> **但 commit 声明不可全信**：b3e69ab 声称"本地化合规就绪"，实际 importmap 还是 CDN（假的），已由本 session 真修复成 `./three.module.js` 并 CDP 验证跑通。**下个 session 务必先 CDP 完整跑一遍 game_v3，核实这 4 项的真实质量。**
+> ✅ **2026-05-30 建模全部完成 + 收尾打包（逐场景 CDP 验收 + Tim 亲玩通过）**。
+> **game_v3 / index.html 实际状态**：卧室精装✅ · 客厅=原样搬入 `test_livingroom.html` 破败质感(程序化裂纹墙/脏旧木地板/灰布沙发/碎屏电视/餐桌椅/散落纸/电线/灰尘)✅ · 楼梯+黑铁栏杆✅ · 室外单元楼结局(通关切场景:6 层公寓楼+草地+路灯)✅ · 死亡黑盒聚光(SpotLight 照楼板压人+死亡报告牌,替黑屏文字)✅ · 正式 UI(开场"醒来"代入文案)✅ · 调试钩子已删✅。
+> **关键集成手法（供接手参考）**：① 客厅=保留 game_v3 碰撞骨架(已验证动线)+换 test 材质+`buildLivingRoom` 摆家具,**不硬搬它自带的独立房子**(会和现有楼几何打架)。② 死亡/室外=独立场景建在地下 y=-120 远处,`die()`/通关时相机切过去,备份还原氛围(scene.background/fog/exposure),重开 `dispose` 清理。③ 修过真 bug:地震启动定时器会在死亡后覆盖 phase,已改成只在 wake 时转 quake。
+> **交付物**：根目录 `index.html`(入口) + `three.module.js` + `余震DROP_submit.zip`(297KB/解压1.4MB,纯离线:importmap 本地+零 CDN/fetch,grep 实证)。
 
-真正剩余：
-1. **死亡演示黑盒聚光**：现在死亡是黑屏文字，modules.js 有 buildDeathScene（黑盒聚光人被楼板压）可换（待确认是否已做）。
-2. **迷宫拐弯**（可选，再拉长+迷宫感，用对齐连续地板 __walk 验证）+ **#hud 清理**（和地震 #obj 重叠）。
-3. **最终打包提交**：game_v3.html → 复制为根目录 `index.html`、打包 zip（**必须含 `three.module.js`**）、录 Demo 视频、写飞书文档、上传抖音互动空间过审拿二维码。
+剩余（代码侧全 done，只剩人工对外提交）：
+1. **飞书项目文档 · Demo 演示视频 · 抖音互动空间二维码过审**（截止 5.31 12:00，海报 5.30 17:30）。
+2. （可选小瑕疵，够用不影响交付）室外天空偏暗不够蓝 / 死亡人体被楼板挡住一部分 / 迷宫拐弯。
 
 ## 🚨 交付硬约束（决定能不能拿分，别埋头堆内容忘了这个）
 - **Three.js 已本地化 ✅**（`game_v3.html` importmap 指向 `./three.module.js`，本 session 真修复 + CDP 验证 canvas/THREE/err=none 跑通）。⚠️ 教训：b3e69ab 曾声称"本地化合规就绪+打包演练通过"但 importmap 实际还是 CDN（声明骗人）——**打包前务必再 grep 一次 importmap 确认是本地、并真的离线测一次**。game_v3 只用 `import * as THREE from 'three'`（无 addons），所以本地化只需 three.module.js 一个文件。

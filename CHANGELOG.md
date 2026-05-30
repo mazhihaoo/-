@@ -2,11 +2,23 @@
 
 > 进度与关键决策的里程碑时间线。新里程碑写在最上面。
 
+## [建模全部完成 · 交付打包] 2026-05-30 深夜
+
+- **四大场景全部做精 + 集成 + CDP 逐场景验收 + Tim 亲玩通过**：
+  - **客厅** = 原样搬入 `test_livingroom.html` 的 SCP 破败质感(程序化裂纹墙/脏旧木地板/灰布沙发/碎屏电视/餐桌椅/满地散落纸/垂下电线/飘浮灰尘)——保留 game_v3 碰撞骨架+换 test 材质+`buildLivingRoom` 摆家具，**不硬搬它自带的独立房子**(否则和现有楼几何打架)。
+  - **楼梯黑铁栏杆**(立柱+斜扶手顺台阶下行，台阶不动保住无缝下楼)。
+  - **室外单元楼结局**(通关切场景:6 层老公寓+草地+路灯，`buildExterior`)。
+  - **死亡黑盒聚光**(SpotLight 照楼板压人+死亡报告牌，替掉原黑屏文字，`buildDeathScene`)。
+- **多 Agent 并行工作流(提速)**：室外/死亡由 2 个 subagent 并行机械搬运 modules.js/test 资产→自包含函数(零 addons/零外部文件/不加全局光)，主 agent 集成+CDP 视觉验收；楼梯栏杆主 agent 自己做。
+- **修真 bug**：地震启动定时器会在死亡后把 phase 覆盖回 quake、致死亡相机失效——改成只在 wake 时才转 quake。
+- **收尾打包**：删调试钩子(__walk/__view/__die)、正式 UI(开场代入文案/清开发 HUD/隐藏调试坐标)、game_v3→根目录 `index.html`、`余震DROP_submit.zip` 297KB/解压 1.4MB(远低于 8MB)、纯离线(importmap 本地+零 CDN/fetch，grep 实证)。
+- **剩余**：飞书文档/Demo 视频/抖音二维码过审(人工对外提交)。
+
 ## [可交接 · 交付就绪] 2026-05-31
 
 - **推 GitHub 可交接**：17 个 commit 全 push，队友 clone/Fork 即拿最新完整版（game_v3.html + three.module.js + modules.js + test_*.html + CLAUDE.md）。README 重写指向 game_v3，在线版实测可玩 `starsky618.github.io/drop/game_v3.html`。
 - **🔴 抓修 Three.js 假本地化**：b3e69ab 曾声称"本地化合规就绪+打包演练通过"，但 importmap 实际还是 CDN（声明骗人，离线 zip 会跑不起来）。本次真改 importmap → `./three.module.js` + CDP 验证 canvas/THREE/err=none 跑通，**交付合规这次真就绪**。教训：commit 声明不可信，打包前必 grep importmap + 真离线测。
-- **git ground truth 核实纠正**：发现 git 有对话上下文外的进展——客厅精细家具(68d201b 参考图17)、楼梯黑铁栏杆(69edef9)、室外单元楼外景结局(56d2007 图20风格)**已做**。据此纠正了 CLAUDE.md 与下条里程碑里"凭印象写错"的未完成清单。教训：断言现有代码状态前先 grep/git 核实。
+- **⚠️ git 核实纠正（本身又踩 commit 坑，已被次日 CDP 实测推翻）**：当时发现 commit 68d201b/69edef9/56d2007 建了客厅精装/楼梯栏杆/室外，据此标"已做"——**但只看 commit message、没查是否集成**。次日(05-30) CDP+grep 实测：这些函数在 `modules.js` 里、`game_v3.html` 调用 0 次，实际游戏客厅还是方块、楼梯无栏杆、无室外结局。**双重教训：commit 声明不可信 +「建了函数」≠「装进游戏」，断言前 grep 调用点而不只看 commit。真实建模状态见 CLAUDE.md「剩余工作」。**
 - **真正剩余**：死亡演示黑盒聚光 / 迷宫拐弯(可选) / #hud 清理 + 最终打包（game_v3→根目录 index.html、含 three.module.js、Demo 视频、飞书文档、抖音互动空间二维码过审，截止 5.31 12:00）。
 
 ## [连续空间版 game_v3] 2026-05-30 深夜
