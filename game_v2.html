@@ -61,14 +61,14 @@ const app=document.getElementById('app');
 const renderer=new THREE.WebGLRenderer({antialias:true});
 renderer.setSize(innerWidth,innerHeight);renderer.setPixelRatio(Math.min(devicePixelRatio,2));
 renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
-renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.3;app.appendChild(renderer.domElement);
-const scene=new THREE.Scene();scene.background=new THREE.Color(0x9ca1a6);scene.fog=new THREE.Fog(0x8f9499,12,40);
+renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.08;app.appendChild(renderer.domElement);
+const scene=new THREE.Scene();scene.background=new THREE.Color(0x717880);scene.fog=new THREE.Fog(0x666e77,7,30);
 const camera=new THREE.PerspectiveCamera(60,innerWidth/innerHeight,0.05,200);
 
 // 统一基础光照(标记 permanent,场景切换不清除)
-const ambient=new THREE.AmbientLight(0xbcc4cc,0.8);ambient.userData.permanent=1;scene.add(ambient);
-const hemi=new THREE.HemisphereLight(0xd2d8de,0x5a5248,0.6);hemi.userData.permanent=1;scene.add(hemi);
-const sun=new THREE.DirectionalLight(0xeaf2fa,1.8);sun.position.set(8,12,6);sun.castShadow=true;
+const ambient=new THREE.AmbientLight(0xaab2bc,0.42);ambient.userData.permanent=1;scene.add(ambient);
+const hemi=new THREE.HemisphereLight(0xb6bcc4,0x4a4640,0.32);hemi.userData.permanent=1;scene.add(hemi);
+const sun=new THREE.DirectionalLight(0xdce6f0,1.5);sun.position.set(8,12,6);sun.castShadow=true;
 sun.shadow.mapSize.set(2048,2048);sun.shadow.camera.left=-20;sun.shadow.camera.right=20;sun.shadow.camera.top=20;sun.shadow.camera.bottom=-20;sun.shadow.camera.far=60;sun.shadow.bias=-0.0004;sun.userData.permanent=1;scene.add(sun);
 
 // 共享程序化材质(卧室用)
@@ -4090,7 +4090,7 @@ let curScene='', curData=null, sceneRoot=null, extHandle=null;
 function clearScene(){ // 移除所有非 permanent 对象
   const rm=[]; scene.traverse(o=>{ if(o!==scene && !o.userData.permanent && o.parent===scene) rm.push(o); });
   rm.forEach(o=>scene.remove(o));
-  scene.background=new THREE.Color(0x9ca1a6); scene.fog=new THREE.Fog(0x8f9499,12,40);
+  scene.background=new THREE.Color(0x717880); scene.fog=new THREE.Fog(0x666e77,7,30);
 }
 function loadScene(name){
   clearScene(); curScene=name; const S=SCENES[name]; curRoot=scene; extHandle=null;
@@ -4159,7 +4159,7 @@ window.__dbg=(c,a)=>{ $('start').style.display='none';$('crosshair').style.opaci
 // 后处理
 const composer=new EffectComposer(renderer);composer.addPass(new RenderPass(scene,camera));
 composer.addPass(new UnrealBloomPass(new THREE.Vector2(innerWidth,innerHeight),0.4,0.6,0.85));
-const Grade={uniforms:{tDiffuse:{value:null},tt:{value:0},r:{value:1.5},s:{value:0.4}},
+const Grade={uniforms:{tDiffuse:{value:null},tt:{value:0},r:{value:1.28},s:{value:0.5}},
  vertexShader:`varying vec2 v;void main(){v=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}`,
  fragmentShader:`uniform sampler2D tDiffuse;uniform float tt;uniform float r;uniform float s;varying vec2 v;float rnd(vec2 p){return fract(sin(dot(p,vec2(12.9,78.2)))*43758.5);}void main(){vec2 uv=v;float ca=0.0012;vec4 c;c.r=texture2D(tDiffuse,uv+vec2(ca,0.)).r;c.g=texture2D(tDiffuse,uv).g;c.b=texture2D(tDiffuse,uv-vec2(ca,0.)).b;c.a=1.;float d=distance(uv,vec2(0.5));c.rgb*=smoothstep(r,r-s,d);c.rgb+=(rnd(uv+tt)-0.5)*0.04;gl_FragColor=c;}`};
 const grade=new ShaderPass(Grade);composer.addPass(grade);composer.addPass(new OutputPass());
