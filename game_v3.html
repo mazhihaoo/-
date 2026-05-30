@@ -1377,6 +1377,16 @@ wallB(9,H,0.3,24.5,F1+H/2,-2); wallB(9,H,0.3,24.5,F1+H/2,2);
 warmLamp(23,F1+2.4,0); warmLamp(27,F1+2.4,0);
 deco(0.3,2.4,3,29,F1+1.2,0,mExit);
 const EXIT={x:28.5,z:0};
+// 室外单元楼外景(图20多层公寓楼,通关画面)——单元门外 x=38
+const mBldg=new THREE.MeshStandardMaterial({color:0xd8d4cc,roughness:.9});
+const mWin2=new THREE.MeshStandardMaterial({color:0x3a4a5a,roughness:.3,metalness:.4});
+const mRoof=new THREE.MeshStandardMaterial({color:0x6a5040,roughness:.8});
+const mGrass=new THREE.MeshStandardMaterial({color:0x5a7048,roughness:1});
+deco(70,0.3,55,38,F1-0.3,0,mGrass);
+deco(14,21,10,38,F1+10.5,0,mBldg);
+for(let fl=0;fl<6;fl++)for(let col=0;col<5;col++){deco(1.4,1.8,0.3,38-5+col*2.5,F1+3+fl*3.2,5.15,mWin2);}
+deco(15.5,1.4,11,38,F1+21.3,0,mRoof);
+deco(2,2.4,0.3,38,F1+1.2,5.2,mRoof);
 
 // ============ 第一人称 + 射线地面跟随 + 墙碰撞 ============
 const EYE=1.6;
@@ -1413,6 +1423,7 @@ O('dretry').onclick=()=>{startGame();renderer.domElement.requestPointerLock&&ren
 function canMove(from,to){const dir=new THREE.Vector3().subVectors(to,from);const dist=dir.length();if(dist<1e-5)return true;dir.normalize();
   wallRay.set(new THREE.Vector3(from.x,from.y-0.7,from.z),dir);wallRay.far=dist+0.3;return wallRay.intersectObjects(walls,false).length===0;}
 window.__walk=()=>{let p=player.clone(),logs=[];for(let i=0;i<420;i++){const to=new THREE.Vector3(p.x+0.1,p.y,p.z);if(canMove(p,to))p.x=to.x;else{logs.push("卡墙@x="+p.x.toFixed(1));break;}downRay.set(new THREE.Vector3(p.x,p.y+1.8,p.z),new THREE.Vector3(0,-1,0));downRay.far=12;const h=downRay.intersectObjects(grounds,false);if(h.length)p.y=h[0].point.y+EYE;else{logs.push("掉地板@x="+p.x.toFixed(1));break;}}return JSON.stringify({finalX:+p.x.toFixed(1),finalY:+p.y.toFixed(2),reachedExit:Math.abs(p.x-28.5)<2.2,logs});};
+window.__win=()=>{won=true;document.getElementById("win").style.display="flex";scene.background=new THREE.Color(0xaed4f2);scene.fog=new THREE.Fog(0xc4dcf0,55,190);renderer.toneMappingExposure=1.5;return "win";};
 window.__tp=(x,z,yv)=>{player.set(x,1.6,z);if(yv!==undefined)yaw=yv;return "tp";};
 const clock=new THREE.Clock();
 function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDelta(),0.05);
@@ -1427,12 +1438,13 @@ function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDel
   let tg=phase==='quake'?0.22:0;tg*=(keys['KeyW']||keys['KeyA']||keys['KeyS']||keys['KeyD'])?1.3:0.7;shake+=(tg-shake)*Math.min(dt*4,1);const sk=shake;
   camera.position.set(player.x+Math.sin(performance.now()*0.037)*0.04*sk,player.y+Math.cos(performance.now()*0.043)*0.04*sk,player.z+Math.sin(performance.now()*0.029)*0.03*sk);
   camera.rotation.order='YXZ';camera.rotation.y=yaw+Math.cos(performance.now()*0.027)*0.012*sk;camera.rotation.x=pitch+Math.sin(performance.now()*0.031)*0.012*sk;camera.rotation.z=Math.sin(performance.now()*0.053)*0.03*sk;
+  if(won){camera.position.set(25,9,25);camera.lookAt(38,9,0);}
   // 地震:坠落危险
   if(phase==='quake'){quakeT+=dt;sinceSpawn+=dt;if(sinceSpawn>1.3){sinceSpawn=0;spawnHazard();}
     for(const h of hazards){if(h.done)continue;h.t+=dt;
       if(!h.fall){h.warn.material.opacity=0.4+0.4*Math.sin(h.t*12);if(h.t>1.1){h.fall=true;scene.remove(h.warn);}}
       else{h.vy-=dt*16;h.ob.position.y+=h.vy*dt;h.ob.rotation.x+=dt*3;if(h.ob.position.y<=h.baseY+0.2){h.ob.position.y=h.baseY+0.2;h.done=true;crash();if(Math.hypot(player.x-h.hx,player.z-h.hz)<0.85&&Math.abs(player.y-EYE-h.baseY)<1.5)die('被坠落的天花板碎块砸中。');}}}}
-  if(!won&&Math.hypot(player.x-EXIT.x,player.z-EXIT.z)<1.8){won=true;document.getElementById('win').style.display='flex';if(locked)document.exitPointerLock();}
+  if(!won&&Math.hypot(player.x-EXIT.x,player.z-EXIT.z)<1.8){won=true;document.getElementById('win').style.display='flex';if(locked)document.exitPointerLock();scene.background=new THREE.Color(0xaed4f2);scene.fog=new THREE.Fog(0xc4dcf0,55,190);renderer.toneMappingExposure=1.5;O('obj').style.opacity=0;}
   document.getElementById('info').textContent='y='+player.y.toFixed(2)+' | x='+player.x.toFixed(1)+' z='+player.z.toFixed(1)+' | '+(player.y<-1?'一楼':'二楼');
   renderer.render(scene,camera);}
 animate();
