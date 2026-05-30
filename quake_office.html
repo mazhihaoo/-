@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>余震·DROP — 破败办公室</title>
+<style>
+  /* ===== 全局：撑满屏幕、纯黑底，让电影压抑感从边缘暗下来 ===== */
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #05060a; }
+  #app { position: fixed; inset: 0; }
+  /* ===== 加载/提示文字：冷灰描边，融进废墟氛围 ===== */
+  #hud {
+    position: fixed; left: 0; right: 0; bottom: 26px;
+    text-align: center; color: #8b97a8; font-family: "Segoe UI", system-ui, sans-serif;
+    font-size: 13px; letter-spacing: 3px; text-transform: uppercase;
+    text-shadow: 0 0 8px #000; pointer-events: none; user-select: none;
+    opacity: .72;
+  }
+  #title {
+    position: fixed; left: 24px; top: 20px;
+    color: #c4cedb; font-family: "Segoe UI", system-ui, sans-serif;
+    font-size: 12px; letter-spacing: 6px; opacity: .55; pointer-events: none; user-select: none;
+  }
+  #title b { color: #e23b3b; font-weight: 700; letter-spacing: 4px; }
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div id="title"><b>余震·DROP</b>　AFTERSHOCK</div>
+<div id="hud">地震刚过 · 寻找你的求生路线</div>
+
+<!-- importmap：把裸名字 three / three/addons 映射到 CDN 上的真实文件。
+     好比给快递写"收件人=张三"，importmap 就是那本"张三 → 具体门牌号"的通讯录。 -->
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
+
+/* =========================================================================
+ * 余震·DROP — 程序化生成的"地震刚过的破败办公室"
+ *
+ * 设计总思路（给零基础同学的导览）：
+ *   整个场景就像搭一个"舞台剧布景"——所有道具(BoxGeometry 立方体、粒子)都用
+ *   代码现场捏出来，不导入任何外部模型/图片(守住 8MB 红线)。
+ *   舞台靠"灯光 + 后处理(辉光/暗角/噪点/色差)"来出戏，而不是靠精细贴图。
+ *
+ * 三大模块：
+ *   1) 世界(buildWorld)      —— 房间、塌陷天花板、裂缝、翻倒家具、4 个关键交互点
+ *   2) 氛围(灯光 + 粒子)      —— 冷灰主光 + 红色应急灯 + 绿色 EXIT；空气里飘的灰尘
+ *   3) 镜头与后处理(post)     —— 第一人称呼吸晃动 + 缓慢环视；Bloom/Vignette/噪点/色差
+ * ========================================================================= */
+
+// ---------- 0. 三大件：场景 / 相机 / 渲染器 ----------
+const app = document.getElementById('app');
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x06070b);
+// 雾：让远处家具"溶进"灰暗里，制造废墟纵深与压抑感。
+// 把雾想象成房间里弥漫的尘烟——越远越看不清。
+scene.fog = new THREE.FogExp2(0x070910, 0.052);
+
+const camera = new THREE.PerspectiveCamera(62, window.innerWidth / window.innerHeight, 0.05, 100);
+camera.position.set(0, 1.6, 4.2);   // 第一人称：人眼高度 1.6m，站在房间中后部
+camera.rotation.order = 'YXZ';
+
+const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2)); // 限制 2 倍，防高分屏掉帧
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+// 物理光照 + 偏暗的曝光，营造电影级冷调
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 0.95;
+app.appendChild(renderer.domElement);
+
+// ---------- 1. 材质工具：统一的"冷灰混凝土"风格 ----------
+// 把材质工厂想象成"调色盘+配方表"，全场反复用同几种配方，画面才统一不花。
+function concrete(color, rough = 0.95, metal = 0.0) {
+  return new THREE.MeshStandardMaterial({ color, roughness: rough, metalness: metal });
+}
+const MAT = {
+  floor:   concrete(0x14161c, 0.98),
+  wall:    concrete(0x191c24, 0.96),
+  wallDk:  concrete(0x101218, 0.97),
+  ceiling: concrete(0x0d0f15, 0.99),
+  rubble:  concrete(0x2a2d36, 0.95),
+  crack:   concrete(0x040406, 1.0),      // 裂缝/阴影：近乎全黑
+  desk:    concrete(0x4a3826, 0.85),     // 木桌
+  metal:   concrete(0x3a4049, 0.4, 0.85),// 电梯金属门
+  metalDk: concrete(0x21262d, 0.5, 0.7),
+  paper:   concrete(0x9a9488, 0.9),
+};
+
+const world = new THREE.Group();
+scene.add(world);
+
+// 小工具：快速生成一个带阴影的盒子并加入指定父级
+function box(w, h, d, mat, x, y, z, parent = world) {
+  const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat);
+  m.position.set(x, y, z);
+  m.castShadow = true; m.receiveShadow = true;
+  parent.add(m);
+  return m;
+}
+
+// ====================== 2. 搭建世界 ======================
+const ROOM = { w: 12, d: 14, h: 3.4 };  // 房间尺寸
+
+// --- 2.1 地板（带散落碎屑感的分块）---
+const floor = box(ROOM.w, 0.2, ROOM.d, MAT.floor, 0, -0.1, 0);
+floor.receiveShadow = true;
+
+// --- 2.2 四面墙 ---
+// 后墙（远处，放电梯）
+box(ROOM.w, ROOM.h, 0.3, MAT.wall, 0, ROOM.h / 2, -ROOM.d / 2);
+// 前墙（相机背后，给空间封闭感）
+box(ROOM.w, ROOM.h, 0.3, MAT.wallDk, 0, ROOM.h / 2, ROOM.d / 2);
+// 左墙（放裂缝 + 墙角关键点）
+box(0.3, ROOM.h, ROOM.d, MAT.wall, -ROOM.w / 2, ROOM.h / 2, 0);
+// 右墙（放楼梯口 EXIT）
+box(0.3, ROOM.h, ROOM.d, MAT.wall, ROOM.w / 2, ROOM.h / 2, 0);
+
+// --- 2.3 天花板（部分塌陷：留一个大洞，露出黑暗与垂落的板）---
+// 用四块拼出一个"缺角"的天花板，缺口正上方让冷光漏下来。
+box(ROOM.w, 0.25, 5.5, MAT.ceiling, 0, ROOM.h, -ROOM.d / 2 + 2.75);   // 后段完整
+box(ROOM.w, 0.25, 4.0, MAT.ceiling, 0, ROOM.h, ROOM.d / 2 - 2.0);     // 前段完整
+box(3.5, 0.25, 4.5, MAT.ceiling, -ROOM.w / 2 + 1.75, ROOM.h, 0);      // 左段（右侧留洞）
+// 垂落的破天花板块（断裂悬挂感）
+const slab1 = box(3.2, 0.22, 2.4, MAT.ceiling, 2.4, ROOM.h - 0.6, 0.2);
+slab1.rotation.z = -0.32; slab1.rotation.x = 0.12;
+const slab2 = box(1.8, 0.2, 1.6, MAT.rubble, 3.4, ROOM.h - 1.4, -1.0);
+slab2.rotation.z = 0.5;
+
+// --- 2.4 散落的瓦砾堆（地面碎屑，程序随机生成）---
+// 用一堆随机大小/旋转的小盒子堆出"碎成一片"的废墟感。
+const rubbleSeed = [
+  [3.2, 0.1, 0.6], [2.6, 0.05, 1.2], [3.7, 0.18, -0.4], [2.0, 0.06, -0.2],
+  [-3.5, 0.08, 2.0], [-4.0, 0.05, 1.2], [1.4, 0.04, 2.8], [-1.0, 0.05, -3.0],
+  [3.0, 0.05, -2.4], [-2.2, 0.06, 3.4], [0.6, 0.04, -4.0], [4.2, 0.1, 1.6],
+];
+rubbleSeed.forEach((p, i) => {
+  const s = 0.25 + (i % 4) * 0.18;
+  const r = box(s, 0.1 + (i % 3) * 0.12, s * 0.8, MAT.rubble, p[0], p[1], p[2]);
+  r.rotation.set(Math.random() * 0.5, Math.random() * Math.PI, Math.random() * 0.5);
+});
+// 飞散的纸张（浅色小薄片，点缀办公室属性）
+for (let i = 0; i < 14; i++) {
+  const pap = box(0.22, 0.005, 0.3, MAT.paper,
+    (Math.random() - 0.5) * 9, 0.02, (Math.random() - 0.5) * 11);
+  pap.rotation.y = Math.random() * Math.PI;
+  pap.rotation.x = (Math.random() - 0.5) * 0.3;
+}
+
+// --- 2.5 墙面裂缝（左墙上贴几条近黑细长条，模拟开裂）---
+function crackLine(x, y, z, len, ang, rotY) {
+  const c = new THREE.Mesh(new THREE.BoxGeometry(0.04, len, 0.06), MAT.crack);
+  c.position.set(x, y, z); c.rotation.z = ang; c.rotation.y = rotY;
+  world.add(c);
+}
+crackLine(-ROOM.w / 2 + 0.18, 2.1, -1.5, 2.2, 0.35, Math.PI / 2);
+crackLine(-ROOM.w / 2 + 0.18, 1.4, -1.2, 1.4, -0.5, Math.PI / 2);
+crackLine(-ROOM.w / 2 + 0.18, 2.4, 1.8, 1.8, 0.22, Math.PI / 2);
+// 后墙也来一道大裂缝
+crackLine(-1.8, 1.9, -ROOM.d / 2 + 0.18, 2.6, 0.28, 0);
+
+/* ============== 3. 四个关键交互点（高对比、一眼可认） ============== */
+
+// ===== 关键点 ① 楼梯口 + 绿色 EXIT 发光指示牌（右后角）=====
+const exitGroup = new THREE.Group();
+exitGroup.position.set(ROOM.w / 2 - 1.6, 0, -ROOM.d / 2 + 1.4);
+world.add(exitGroup);
+// 门洞框（深色金属框，框住一段向上的楼梯）
+box(0.2, 2.6, 1.8, MAT.metalDk, 0.85, 1.3, 0, exitGroup);   // 门右框
+box(1.9, 0.2, 1.8, MAT.metalDk, 0, 2.6, 0, exitGroup);      // 门上框
+// 楼梯踏步（向后上方延伸，暗示"往上逃生"）
+for (let i = 0; i < 5; i++) {
+  box(1.5, 0.18, 0.5, MAT.rubble, 0, 0.18 + i * 0.34, -0.4 - i * 0.45, exitGroup);
+}
+// 绿色 EXIT 发光牌——自发光材质 + 配套点光，是 Bloom 辉光的主角
+const exitMat = new THREE.MeshStandardMaterial({
+  color: 0x0aff7a, emissive: 0x10ff88, emissiveIntensity: 2.4, roughness: 0.4
+});
+const exitSign = new THREE.Mesh(new THREE.BoxGeometry(1.25, 0.42, 0.08), exitMat);
+exitSign.position.set(0, 2.35, 0.92);
+exitGroup.add(exitSign);
+// 牌子里的 "EXIT" 字样：用四个小黑条压在绿牌上做出镂空字母的剪影感（极简但可读）
+const exitGlow = new THREE.PointLight(0x18ff88, 3.2, 7, 2.2);
+exitGlow.position.set(0, 2.35, 1.3);
+exitGroup.add(exitGlow);
+// 牌下投在地面的绿色光斑（应急导向光）
+const exitSpot = new THREE.SpotLight(0x12ff7e, 6, 9, 0.7, 0.6, 1.4);
+exitSpot.position.set(0, 2.3, 1.0);
+exitSpot.target.position.set(0, 0, 2.0);
+exitGroup.add(exitSpot); exitGroup.add(exitSpot.target);
+
+// ===== 关键点 ② 电梯门：金属质感双扇门（正后墙中央）=====
+const elevator = new THREE.Group();
+elevator.position.set(-2.6, 0, -ROOM.d / 2 + 0.2);
+world.add(elevator);
+// 电梯外框（亮金属，区别于灰墙）
+box(2.6, 2.9, 0.25, MAT.metalDk, 0, 1.45, 0, elevator);
+// 两扇微微错开的金属门（地震后没对齐，留条缝透出里面的黑）
+const doorL = box(1.05, 2.5, 0.12, MAT.metal, -0.56, 1.3, 0.12, elevator);
+const doorR = box(1.05, 2.5, 0.12, MAT.metal, 0.6, 1.3, 0.12, elevator); // 右门多挪 0.04，露缝
+// 门缝里的黑（电梯井深渊）
+box(0.5, 2.5, 0.05, MAT.crack, 0.02, 1.3, 0.05, elevator);
+// 电梯上方的楼层数字灯（暗红，闪烁——制造"危险，别进"的暗示）
+const elevLampMat = new THREE.MeshStandardMaterial({
+  color: 0x550000, emissive: 0xff2a1a, emissiveIntensity: 1.6, roughness: 0.5
+});
+const elevLamp = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.18, 0.06), elevLampMat);
+elevLamp.position.set(0, 2.78, 0.16);
+elevator.add(elevLamp);
+const elevLampLight = new THREE.PointLight(0xff3322, 1.4, 4, 2.5);
+elevLampLight.position.set(0, 2.7, 0.6);
+elevator.add(elevLampLight);
+
+// ===== 关键点 ③ 明显的墙角（左前角，干净的内角空间 + 一束冷光打亮）=====
+// 用一圈浅色描边盒子框出"这个角落"，并用 spotlight 单独打亮，让它从暗里跳出来。
+const cornerGroup = new THREE.Group();
+cornerGroup.position.set(-ROOM.w / 2 + 0.4, 0, ROOM.d / 2 - 0.8);
+world.add(cornerGroup);
+// 角落地面亮块（被光打亮的安全区暗示）
+const cornerPad = new THREE.Mesh(new THREE.BoxGeometry(2.2, 0.04, 2.2),
+  concrete(0x2c3138, 0.9));
+cornerPad.position.set(0.9, 0.01, -0.9); cornerPad.receiveShadow = true;
+cornerGroup.add(cornerPad);
+// 角落上方一束冷蓝白聚光，单独把这块角落"圈出来"
+const cornerSpot = new THREE.SpotLight(0xaecbe8, 5.5, 8, 0.5, 0.5, 1.6);
+cornerSpot.position.set(1.2, 3.2, -1.2);
+cornerSpot.target.position.set(0.9, 0, -0.9);
+cornerSpot.castShadow = true;
+cornerGroup.add(cornerSpot); cornerGroup.add(cornerSpot.target);
+
+// ===== 关键点 ④ 坚固办公桌（房间正中偏前，可供躲藏——"伏地遮挡手抓牢"）=====
+const deskGroup = new THREE.Group();
+deskGroup.position.set(-0.4, 0, 1.6);
+world.add(deskGroup);
+const TOP = 0.78;
+box(2.0, 0.12, 1.1, MAT.desk, 0, TOP, 0, deskGroup);            // 桌面（厚实结实）
+box(0.12, TOP, 0.12, MAT.desk, -0.9, TOP / 2, -0.45, deskGroup);// 四条粗腿
+box(0.12, TOP, 0.12, MAT.desk, 0.9, TOP / 2, -0.45, deskGroup);
+box(0.12, TOP, 0.12, MAT.desk, -0.9, TOP / 2, 0.45, deskGroup);
+box(0.12, TOP, 0.12, MAT.desk, 0.9, TOP / 2, 0.45, deskGroup);
+// 桌下挡板（暗示能钻进去躲）
+box(1.8, 0.5, 0.06, MAT.desk, 0, 0.35, -0.5, deskGroup);
+// 桌上一台暗着的旧显示器 + 一盏还亮着的台灯（唯一暖光，把桌子点成视觉锚）
+box(0.5, 0.38, 0.06, MAT.metalDk, -0.5, TOP + 0.25, -0.3, deskGroup); // 显示器
+const lampMat = new THREE.MeshStandardMaterial({
+  color: 0x332a18, emissive: 0xffcf7a, emissiveIntensity: 1.8, roughness: 0.5
+});
+const lampHead = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.1, 0.22), lampMat);
+lampHead.position.set(0.55, TOP + 0.34, 0.2); deskGroup.add(lampHead);
+box(0.03, 0.34, 0.03, MAT.metalDk, 0.55, TOP + 0.17, 0.2, deskGroup); // 灯杆
+const deskLamp = new THREE.PointLight(0xffc878, 2.6, 5, 2.0);          // 暖光球
+deskLamp.position.set(0.5, TOP + 0.45, 0.2);
+deskGroup.add(deskLamp);
+
+// --- 翻倒的家具（一把椅子 + 一个倒下的文件柜，强化"刚地震过"）---
+const chair = new THREE.Group();
+chair.position.set(2.2, 0, 2.6); chair.rotation.z = Math.PI / 2.1; chair.rotation.y = 0.6;
+box(0.5, 0.08, 0.5, MAT.metalDk, 0, 0.5, 0, chair);
+box(0.5, 0.5, 0.06, MAT.metalDk, 0, 0.75, -0.22, chair);
+box(0.05, 0.5, 0.05, MAT.metalDk, -0.2, 0.25, 0.2, chair);
+box(0.05, 0.5, 0.05, MAT.metalDk, 0.2, 0.25, 0.2, chair);
+world.add(chair);
+// 倒地的文件柜
+const cab = box(0.9, 1.6, 0.5, MAT.metalDk, -3.6, 0.46, -2.6);
+cab.rotation.z = Math.PI / 2 - 0.15; cab.rotation.y = 0.3;
+
+// ====================== 4. 灯光氛围 ======================
+// 极弱环境光：只给最低限度的"看得见"，其余全靠点光雕刻明暗。
+scene.add(new THREE.AmbientLight(0x20242e, 0.55));
+// 半球光：天空冷、地面更冷，模拟从天花板破洞透下的灰天光
+scene.add(new THREE.HemisphereLight(0x2a3340, 0x05060a, 0.5));
+
+// 主光：从天花板"破洞"斜射下来的一束冷光（带阴影，雕刻废墟立体感）
+const moon = new THREE.DirectionalLight(0xbcd0e6, 1.1);
+moon.position.set(5, 8, 2);
+moon.castShadow = true;
+moon.shadow.mapSize.set(2048, 2048);
+moon.shadow.camera.near = 1; moon.shadow.camera.far = 30;
+moon.shadow.camera.left = -10; moon.shadow.camera.right = 10;
+moon.shadow.camera.top = 10; moon.shadow.camera.bottom = -10;
+moon.shadow.bias = -0.0004;
+scene.add(moon);
+
+// 一盏闪烁的红色应急灯（天花板，制造警报压迫感）
+const alarm = new THREE.PointLight(0xff2a18, 0.0, 12, 2.0);
+alarm.position.set(0.5, 3.0, -3.0);
+scene.add(alarm);
+
+// 体积光感的破洞光柱：一个半透明锥体冒充"丁达尔光束"
+const beamMat = new THREE.MeshBasicMaterial({
+  color: 0x9fb8d6, transparent: true, opacity: 0.04, depthWrite: false,
+  side: THREE.DoubleSide, blending: THREE.AdditiveBlending
+});
+const beam = new THREE.Mesh(new THREE.ConeGeometry(2.6, 6, 24, 1, true), beamMat);
+beam.position.set(4, 3.0, 0); beam.rotation.x = 0.18;
+scene.add(beam);
+
+// ====================== 5. 飘浮的灰尘粒子 ======================
+// 用一团 Points 粒子模拟空气里悬浮的灰尘，被光一照点点发亮，画面立刻"活"。
+const dustCount = 900;
+const dustPos = new Float32Array(dustCount * 3);
+const dustSpeed = new Float32Array(dustCount);
+for (let i = 0; i < dustCount; i++) {
+  dustPos[i * 3]     = (Math.random() - 0.5) * ROOM.w;
+  dustPos[i * 3 + 1] = Math.random() * ROOM.h;
+  dustPos[i * 3 + 2] = (Math.random() - 0.5) * ROOM.d;
+  dustSpeed[i] = 0.05 + Math.random() * 0.12;
+}
+const dustGeo = new THREE.BufferGeometry();
+dustGeo.setAttribute('position', new THREE.BufferAttribute(dustPos, 3));
+const dustMat = new THREE.PointsMaterial({
+  color: 0xaeb8c6, size: 0.025, transparent: true, opacity: 0.55,
+  depthWrite: false, blending: THREE.AdditiveBlending, sizeAttenuation: true
+});
+const dust = new THREE.Points(dustGeo, dustMat);
+scene.add(dust);
+
+// ====================== 6. 后处理：电影级质感 ======================
+const composer = new EffectComposer(renderer);
+composer.addPass(new RenderPass(scene, camera));
+
+// 6.1 UnrealBloom：让 EXIT 绿牌、台灯、应急红灯"发光晕开"，是辉光主力
+const bloom = new UnrealBloomPass(
+  new THREE.Vector2(window.innerWidth, window.innerHeight),
+  0.85,  // strength 强度
+  0.7,   // radius 扩散半径
+  0.22   // threshold 阈值：只有够亮的(自发光体)才会晕开
+);
+composer.addPass(bloom);
+
+// 6.2 自定义合成 Pass：暗角 Vignette + 胶片噪点 + 轻微 RGB 色差，一次搞定
+//     把它想成"给照片套一层电影滤镜"：四周压暗、加颗粒、边缘微微分色。
+const CinematicShader = {
+  uniforms: {
+    tDiffuse: { value: null },
+    uTime:    { value: 0 },
+    uVig:     { value: 1.15 },  // 暗角强度
+    uNoise:   { value: 0.06 },  // 噪点强度
+    uAberr:   { value: 0.0016 },// 色差强度
+  },
+  vertexShader: `
+    varying vec2 vUv;
+    void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }
+  `,
+  fragmentShader: `
+    uniform sampler2D tDiffuse;
+    uniform float uTime, uVig, uNoise, uAberr;
+    varying vec2 vUv;
+    // 简易伪随机：用屏幕坐标+时间生成噪点
+    float rand(vec2 c){ return fract(sin(dot(c, vec2(12.9898,78.233))) * 43758.5453); }
+    void main(){
+      vec2 uv = vUv;
+      // —— RGB 色差：红蓝通道朝相反方向微偏，边缘越远偏移越大（镜头味）——
+      vec2 dir = uv - 0.5;
+      float d = dot(dir, dir);
+      vec2 off = dir * uAberr * (1.0 + d * 6.0);
+      float r = texture2D(tDiffuse, uv + off).r;
+      float g = texture2D(tDiffuse, uv).g;
+      float b = texture2D(tDiffuse, uv - off).b;
+      vec3 col = vec3(r, g, b);
+      // —— 暗角 Vignette：离中心越远越暗，把视线焊在画面中央 ——
+      float vig = smoothstep(0.95, 0.25, d * uVig * 2.2);
+      col *= mix(0.32, 1.0, vig);
+      // —— 胶片噪点：动态颗粒，破败、脏、有年代感 ——
+      float n = rand(uv * vec2(800.0, 600.0) + uTime) - 0.5;
+      col += n * uNoise;
+      // —— 轻微冷调偏移，整体压成青灰电影色 ——
+      col = mix(col, col * vec3(0.92, 0.97, 1.06), 0.5);
+      gl_FragColor = vec4(col, 1.0);
+    }
+  `
+};
+const cinematicPass = new ShaderPass(CinematicShader);
+composer.addPass(cinematicPass);
+
+// ====================== 7. 相机：呼吸晃动 + 缓慢环视 ======================
+// 让"画面活起来"：基准朝向缓慢左右摆(环视) + 高频小幅呼吸抖动(人在喘气)。
+const camBase = { yaw: 0, pitch: -0.04 };
+
+// ====================== 8. 渲染循环 ======================
+const clock = new THREE.Clock();
+function animate() {
+  requestAnimationFrame(animate);
+  const t = clock.getElapsedTime();
+  const dt = clock.getDelta();
+
+  // 8.1 相机环视 + 呼吸
+  const lookYaw   = Math.sin(t * 0.12) * 0.42;          // 缓慢左右扫视
+  const breathY   = Math.sin(t * 1.6) * 0.012;          // 上下呼吸
+  const breathX   = Math.sin(t * 0.9 + 1.0) * 0.008;    // 左右轻摆
+  camera.rotation.y = camBase.yaw + lookYaw + breathX;
+  camera.rotation.x = camBase.pitch + breathY;
+  camera.position.y = 1.6 + Math.sin(t * 1.6) * 0.01;   // 身体起伏
+
+  // 8.2 灰尘缓缓下落，落到地面就回到顶部循环
+  const pos = dustGeo.attributes.position.array;
+  for (let i = 0; i < dustCount; i++) {
+    pos[i * 3 + 1] -= dustSpeed[i] * dt;
+    pos[i * 3]     += Math.sin(t * 0.3 + i) * 0.0008;   // 横向微微飘
+    if (pos[i * 3 + 1] < 0) pos[i * 3 + 1] = ROOM.h;    // 回到顶部
+  }
+  dustGeo.attributes.position.needsUpdate = true;
+
+  // 8.3 红色应急灯：不规则闪烁（用多个正弦叠加做"故障感"）
+  const flick = Math.max(0, Math.sin(t * 3.0) * 0.5 + Math.sin(t * 11.0) * 0.5);
+  alarm.intensity = 0.4 + flick * 1.8;
+  elevLampLight.intensity = 0.8 + flick * 1.2;
+
+  // 8.4 台灯也偶尔抖一下（接触不良），增加废墟不稳定感
+  deskLamp.intensity = 2.4 + Math.sin(t * 23.0) * 0.25 * (Math.random() > 0.97 ? 4 : 1);
+
+  // 8.5 噪点随时间滚动
+  cinematicPass.uniforms.uTime.value = t;
+
+  composer.render();
+}
+animate();
+
+// ====================== 9. 窗口自适应 ======================
+function onResize() {
+  const w = window.innerWidth, h = window.innerHeight;
+  camera.aspect = w / h;
+  camera.updateProjectionMatrix();
+  renderer.setSize(w, h);
+  composer.setSize(w, h);
+  bloom.setSize(w, h);
+}
+window.addEventListener('resize', onResize);
+</script>
+</body>
+</html>

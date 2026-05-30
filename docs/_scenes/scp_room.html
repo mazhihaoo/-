@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="zh"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>SCP味样本 · 灰白破败房间</title>
+<style>*{margin:0;padding:0}html,body{width:100%;height:100%;overflow:hidden;background:#9a9a97}canvas{display:block}</style>
+</head><body>
+<script type="importmap">{ "imports": { "three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/" }}</script>
+<script type="module">
+// SCP味样本：关键是"灰白、明亮、看得清，但破败压抑"——不是黑+发光。
+import * as THREE from 'three';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
+import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+
+const renderer=new THREE.WebGLRenderer({antialias:true});
+renderer.setSize(innerWidth,innerHeight); renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+renderer.toneMapping=THREE.ACESFilmicToneMapping; renderer.toneMappingExposure=1.05; document.body.appendChild(renderer.domElement);
+const scene=new THREE.Scene();
+scene.background=new THREE.Color(0xb8bcc0);            // 冷灰白背景(不是黑!)，模拟蒙尘的明亮
+scene.fog=new THREE.Fog(0xb0b4b8, 8, 26);             // 灰白雾，远处朦胧但不黑
+const camera=new THREE.PerspectiveCamera(60,innerWidth/innerHeight,0.1,100); camera.position.set(0,1.6,4.5);
+
+// ---- 光：明亮冷调，能看清房间 ----
+scene.add(new THREE.AmbientLight(0xc8d0d8,0.85));      // 高环境光 = 看得清(SCP关键)
+const win=new THREE.DirectionalLight(0xdce6f0,1.5); win.position.set(6,5,3); scene.add(win); // 窗外冷蓝白天光
+const fill=new THREE.HemisphereLight(0xd8dce0,0x6a6258,0.5); scene.add(fill);
+
+// ---- 材质：灰白脏旧水泥/石膏 ----
+const mWall=new THREE.MeshStandardMaterial({color:0xc4c2bc,roughness:0.95});
+const mWallDirty=new THREE.MeshStandardMaterial({color:0x9a958c,roughness:1});
+const mFloor=new THREE.MeshStandardMaterial({color:0x8f8a82,roughness:0.9});
+const mConc=new THREE.MeshStandardMaterial({color:0xa8a49c,roughness:1});       // 碎块混凝土
+const mWood=new THREE.MeshStandardMaterial({color:0x6b5640,roughness:0.8});
+const mMetal=new THREE.MeshStandardMaterial({color:0x8a9098,roughness:0.5,metalness:0.6});
+const mCrack=new THREE.MeshStandardMaterial({color:0x3a3631,roughness:1});       // 裂缝(暗线)
+function box(w,h,d,m,x,y,z,rx,ry,rz){const e=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),m);e.position.set(x,y,z);if(rx||ry||rz)e.rotation.set(rx||0,ry||0,rz||0);scene.add(e);return e;}
+
+// ---- 房间外壳 ----
+box(14,0.3,14,mFloor,0,0,0);
+box(14,0.2,14,mWall,0,4,0);                            // 天花板
+box(14,4,0.4,mWallDirty,0,2,-7);                       // 后墙
+box(0.4,4,14,mWall,-7,2,0);                            // 左墙
+box(0.4,4,14,mWallDirty,7,2,0);                        // 右墙(开窗)
+// 右墙开一扇大窗：透进明亮冷天光(SCP的"外面是亮的"对比)
+const sky=new THREE.Mesh(new THREE.PlaneGeometry(5,3),new THREE.MeshBasicMaterial({color:0xdfeaf2})); sky.position.set(6.78,2.2,1.5); sky.rotation.y=-Math.PI/2; scene.add(sky);
+box(0.45,0.15,5.2,mWall,6.7,3.7,1.5); box(0.45,0.15,5.2,mWall,6.7,0.7,1.5); box(0.45,3,0.18,mWall,6.7,2.2,-1.1); box(0.45,3,0.18,mWall,6.7,2.2,4.1); // 窗框
+
+// ---- 破败：天花板局部塌陷(垂下的板+露出钢筋) ----
+box(3.2,0.25,2.6,mConc,-2,3.4,-3,0.25,0,0.12);        // 歪斜垂落的天花板块
+for(let i=0;i<5;i++) box(0.05,0.05,1.6,mMetal,-2.6+i*0.3,3.5,-3,0.3,0,0); // 露出的钢筋
+// 墙面裂缝(贴墙的暗细线)
+for(let i=0;i<6;i++){ const h=1+Math.random()*1.5; box(0.06,h,0.05,mCrack,-7+0.25,1+Math.random()*2,-5+i*1.8,0,0,(Math.random()-0.5)*0.5); }
+box(0.05,2.2,0.06,mCrack,-1,2.5,-6.78,0,0,0.3); box(0.05,1.6,0.06,mCrack,2,2.2,-6.78,0,0,-0.4);
+
+// ---- 地面碎块/瓦砾(灰调，散落) ----
+for(let i=0;i<40;i++){ const s=0.15+Math.random()*0.45; box(s,s*0.6,s,mConc,(Math.random()-0.5)*12,s*0.3,(Math.random()-0.5)*12,Math.random(),Math.random(),Math.random()); }
+
+// ---- 家具(翻倒/破败) ----
+// 坚固餐桌(关键点：可躲)
+box(2.2,0.15,1.2,mWood,-3,1.0,2); box(0.12,1,0.12,mWood,-3.9,0.5,1.5); box(0.12,1,0.12,mWood,-2.1,0.5,2.5);
+// 翻倒的椅子
+box(0.5,0.5,0.5,mWood,-1.4,0.3,3,0.4,0.6,1.2); box(0.5,0.6,0.08,mWood,-1.5,0.7,3.3,0.4,0.6,1.2);
+// 倒下的书架
+box(1.6,2.2,0.4,mWood,3.5,0.3,-4,1.5,0.2,0);
+
+// ---- 4个高对比关键点(SCP式：靠形态和一点点光提示，不靠霓虹) ----
+// ① 楼梯(通往一楼，关键逃生点) —— 一组台阶 + 暗色扶手
+for(let i=0;i<6;i++) box(2.4,0.25,0.5,mConc,3.5,0.25+i*0.32,4-i*0.5);
+box(0.08,1.4,3,mMetal,4.6,1.2,2.8,0,0,0.0); // 扶手
+const exitSign=new THREE.Mesh(new THREE.BoxGeometry(0.9,0.35,0.08),new THREE.MeshStandardMaterial({color:0x2a6b2a,emissive:0x35c035,emissiveIntensity:0.8})); exitSign.position.set(3.5,3.2,5.2); scene.add(exitSign);
+// ② 大门(冲出去=可能危险)
+box(1.3,2.6,0.15,mMetal,0,1.3,6.9);
+// ③ 承重墙墙角(安全) —— 一个明显的内墙夹角
+box(0.5,4,2.5,mWall,-6.7,2,5.5); box(2.5,4,0.5,mWall,-5.4,2,6.7);
+// ④ 餐桌已在上面(可躲)
+
+// ---- 灰尘粒子(少量、不过曝) ----
+const dustGeo=new THREE.BufferGeometry(); const N=180; const pos=new Float32Array(N*3);
+for(let i=0;i<N;i++){ pos[i*3]=(Math.random()-0.5)*13; pos[i*3+1]=Math.random()*4; pos[i*3+2]=(Math.random()-0.5)*13; }
+dustGeo.setAttribute('position',new THREE.BufferAttribute(pos,3));
+const dust=new THREE.Points(dustGeo,new THREE.PointsMaterial({color:0xb8bcc0,size:0.012,transparent:true,opacity:0.14,depthWrite:false})); scene.add(dust);
+
+// ---- 后处理：克制(轻bloom + 轻暗角，绝不堆黑) ----
+const composer=new EffectComposer(renderer); composer.addPass(new RenderPass(scene,camera));
+composer.addPass(new UnrealBloomPass(new THREE.Vector2(innerWidth,innerHeight),0.25,0.5,0.92)); // 强度低、阈值高=只让真亮的发光
+const Vig={uniforms:{tDiffuse:{value:null},r:{value:1.15},s:{value:0.55}},
+  vertexShader:`varying vec2 v;void main(){v=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}`,
+  fragmentShader:`uniform sampler2D tDiffuse;uniform float r;uniform float s;varying vec2 v;void main(){vec4 c=texture2D(tDiffuse,v);float d=distance(v,vec2(0.5));c.rgb*=smoothstep(r,r-s,d);gl_FragColor=c;}`};
+composer.addPass(new ShaderPass(Vig)); composer.addPass(new OutputPass());
+
+let t=0;
+function animate(){ requestAnimationFrame(animate); t+=0.016;
+  camera.position.x=Math.sin(t*0.3)*0.6; camera.position.y=1.6+Math.sin(t*0.5)*0.04; camera.lookAt(0,1.4,-2); // 缓慢环视
+  dust.position.y=Math.sin(t*0.2)*0.2; dust.rotation.y=t*0.02;
+  composer.render(); }
+animate();
+addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);composer.setSize(innerWidth,innerHeight);});
+</script></body></html>

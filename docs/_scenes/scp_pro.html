@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="zh"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>SCP Pro · 程序化榨干8MB</title>
+<style>*{margin:0;padding:0}html,body{width:100%;height:100%;overflow:hidden;background:#000}canvas{display:block}</style>
+</head><body>
+<script type="importmap">{ "imports": { "three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/" }}</script>
+<script type="module">
+// 榨干8MB：程序化纹理(零文件) + PBR + 实时阴影 + SSAO + 体积光柱 + 重后处理。
+import * as THREE from 'three';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { SSAOPass } from 'three/addons/postprocessing/SSAOPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
+import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+
+// ============ 程序化纹理：用 Canvas 画 noise/污渍/裂纹，零文件 ============
+function noiseCanvas(base, opts={}){
+  const s=256, c=document.createElement('canvas'); c.width=c.height=s; const x=c.getContext('2d');
+  x.fillStyle=base; x.fillRect(0,0,s,s);
+  // 多层灰度噪点(污渍/水泥颗粒)
+  const img=x.getImageData(0,0,s,s), d=img.data;
+  for(let i=0;i<d.length;i+=4){ const n=(Math.random()-0.5)*(opts.grain||34); d[i]+=n; d[i+1]+=n; d[i+2]+=n; }
+  x.putImageData(img,0,0);
+  // 大块污渍(柔和暗斑)
+  for(let i=0;i<(opts.stains||14);i++){ const r=20+Math.random()*60; const g=x.createRadialGradient(Math.random()*s,Math.random()*s,0,Math.random()*s,Math.random()*s,r);
+    g.addColorStop(0,'rgba(0,0,0,'+(0.04+Math.random()*0.10)+')'); g.addColorStop(1,'rgba(0,0,0,0)'); x.fillStyle=g; x.fillRect(0,0,s,s); }
+  // 裂纹(暗色折线)
+  for(let i=0;i<(opts.cracks||5);i++){ x.strokeStyle='rgba(20,18,16,'+(0.3+Math.random()*0.4)+')'; x.lineWidth=0.5+Math.random()*1.5; x.beginPath();
+    let px=Math.random()*s, py=Math.random()*s; x.moveTo(px,py);
+    for(let j=0;j<8;j++){ px+=(Math.random()-0.5)*40; py+=(Math.random()-0.5)*40; x.lineTo(px,py); } x.stroke(); }
+  const tex=new THREE.CanvasTexture(c); tex.wrapS=tex.wrapT=THREE.RepeatWrapping; tex.repeat.set(opts.rep||2,opts.rep||2); return tex;
+}
+// 程序化法线贴图(让平面有凹凸光影)
+function bumpCanvas(){ const s=256,c=document.createElement('canvas'); c.width=c.height=s; const x=c.getContext('2d');
+  x.fillStyle='#808080'; x.fillRect(0,0,s,s); const img=x.getImageData(0,0,s,s),d=img.data;
+  for(let i=0;i<d.length;i+=4){ const n=(Math.random()-0.5)*60; d[i]=128+n; d[i+1]=128+n; d[i+2]=255; }
+  x.putImageData(img,0,0); const t=new THREE.CanvasTexture(c); t.wrapS=t.wrapT=THREE.RepeatWrapping; t.repeat.set(3,3); return t; }
+
+const renderer=new THREE.WebGLRenderer({antialias:true});
+renderer.setSize(innerWidth,innerHeight); renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+renderer.shadowMap.enabled=true; renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+renderer.toneMapping=THREE.ACESFilmicToneMapping; renderer.toneMappingExposure=1.55; document.body.appendChild(renderer.domElement);
+const scene=new THREE.Scene(); scene.background=new THREE.Color(0xa9adb2); scene.fog=new THREE.Fog(0x9ca0a5,9,30);
+const camera=new THREE.PerspectiveCamera(60,innerWidth/innerHeight,0.1,100); camera.position.set(1.5,1.6,5);
+
+// ---- 程序化 PBR 材质 ----
+const bump=bumpCanvas();
+const mWall=new THREE.MeshStandardMaterial({color:0xc8c6c0,roughness:0.95,map:noiseCanvas('#c8c6c0',{rep:3,cracks:6,stains:18}),normalMap:bump,normalScale:new THREE.Vector2(0.4,0.4)});
+const mWallD=new THREE.MeshStandardMaterial({color:0x9a958c,roughness:1,map:noiseCanvas('#9a958c',{rep:3,cracks:8,stains:22}),normalMap:bump,normalScale:new THREE.Vector2(0.5,0.5)});
+const mFloor=new THREE.MeshStandardMaterial({color:0x8a857d,roughness:0.92,map:noiseCanvas('#8a857d',{rep:5,cracks:10,stains:26}),normalMap:bump,normalScale:new THREE.Vector2(0.6,0.6)});
+const mConc=new THREE.MeshStandardMaterial({color:0xb0aca4,roughness:1,map:noiseCanvas('#b0aca4',{rep:1,grain:44})});
+const mWood=new THREE.MeshStandardMaterial({color:0x6b5640,roughness:0.78,map:noiseCanvas('#6b5640',{rep:2,grain:28,cracks:3})});
+const mMetal=new THREE.MeshStandardMaterial({color:0x8a9098,roughness:0.42,metalness:0.7});
+function box(w,h,d,m,x,y,z,rx,ry,rz){const e=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),m);e.position.set(x,y,z);if(rx||ry||rz)e.rotation.set(rx||0,ry||0,rz||0);e.castShadow=true;e.receiveShadow=true;scene.add(e);return e;}
+
+// ---- 光照：环境 + 窗外强冷光(投阴影) + 暖应急灯 ----
+scene.add(new THREE.AmbientLight(0xbcc4cc,0.85));
+scene.add(new THREE.HemisphereLight(0xd2d8de,0x5a5248,0.65));
+const sun=new THREE.DirectionalLight(0xeaf2fa,2.2); sun.position.set(9,7,4); sun.castShadow=true;
+sun.shadow.mapSize.set(2048,2048); sun.shadow.camera.left=-12;sun.shadow.camera.right=12;sun.shadow.camera.top=12;sun.shadow.camera.bottom=-12; sun.shadow.bias=-0.0004; scene.add(sun);
+const emer=new THREE.PointLight(0xff7a3a,5,12,2); emer.position.set(-4,2.4,-3); scene.add(emer); // 暖色应急灯做冷暖对比
+
+// ---- 房间 ----
+box(14,0.3,14,mFloor,0,0,0);
+box(14,0.2,14,mWallD,0,4,0);
+box(14,4,0.4,mWallD,0,2,-7);
+box(0.4,4,14,mWall,-7,2,0);
+box(0.4,4,14,mWall,7,2,0);
+// 窗(透进强冷天光) + 窗框
+const sky=new THREE.Mesh(new THREE.PlaneGeometry(5.2,3.2),new THREE.MeshBasicMaterial({color:0xeef4fa})); sky.position.set(6.78,2.3,1); sky.rotation.y=-Math.PI/2; scene.add(sky);
+box(0.5,0.2,5.4,mWall,6.7,3.9,1); box(0.5,0.2,5.4,mWall,6.7,0.7,1); box(0.5,3.2,0.2,mWall,6.7,2.3,-1.7); box(0.5,3.2,0.2,mWall,6.7,2.3,3.7);
+
+// ---- 体积光柱(从窗射入的光束)：拉长半透明面 additive ----
+const beamMat=new THREE.MeshBasicMaterial({color:0xdfeaf5,transparent:true,opacity:0.06,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide});
+for(let i=0;i<5;i++){ const b=new THREE.Mesh(new THREE.PlaneGeometry(0.7,6.5),beamMat); b.position.set(5.2-i*0.5,2.0-i*0.15,0.6); b.rotation.set(0,Math.PI*0.5,0.5); scene.add(b); }
+
+// ---- 天花板塌陷 + 钢筋 ----
+box(3.2,0.28,2.6,mConc,-2,3.55,-3,0.22,0,0.14);
+for(let i=0;i<6;i++) box(0.05,0.05,1.8,mMetal,-2.7+i*0.28,3.6,-3,0.3,0,0);
+
+// ---- 地面瓦砾(精细些：随机大小+旋转，受光投影) ----
+for(let i=0;i<55;i++){ const s=0.12+Math.random()*0.5; box(s,s*0.55,s*0.85,mConc,(Math.random()-0.5)*12,s*0.28,(Math.random()-0.5)*12,Math.random()*1.5,Math.random()*3,Math.random()*1.5); }
+
+// ---- 家具 ----
+box(2.3,0.16,1.25,mWood,-3,1.0,2); box(0.13,1,0.13,mWood,-3.95,0.5,1.5); box(0.13,1,0.13,mWood,-2.05,0.5,2.5); // 餐桌
+box(0.55,0.55,0.55,mWood,-1.3,0.32,3,0.4,0.6,1.2); // 翻倒椅
+box(1.7,2.3,0.42,mWood,3.6,0.3,-4,1.5,0.2,0); // 倒下书架
+// 楼梯
+for(let i=0;i<6;i++) box(2.4,0.26,0.52,mConc,3.4,0.26+i*0.32,4.2-i*0.5);
+box(0.08,1.5,3,mMetal,4.55,1.3,3);
+const exitSign=new THREE.Mesh(new THREE.BoxGeometry(0.9,0.34,0.08),new THREE.MeshStandardMaterial({color:0x2a6b2a,emissive:0x35e055,emissiveIntensity:1.0})); exitSign.position.set(3.4,3.2,5.3); scene.add(exitSign);
+// 大门
+box(1.35,2.6,0.16,mMetal,0,1.3,6.9);
+
+// ---- 灰尘 ----
+const dg=new THREE.BufferGeometry(); const N=160; const p=new Float32Array(N*3);
+for(let i=0;i<N;i++){p[i*3]=(Math.random()-0.5)*13;p[i*3+1]=Math.random()*4;p[i*3+2]=(Math.random()-0.5)*13;}
+dg.setAttribute('position',new THREE.BufferAttribute(p,3));
+const dust=new THREE.Points(dg,new THREE.PointsMaterial({color:0xc8ccd0,size:0.014,transparent:true,opacity:0.16,depthWrite:false})); scene.add(dust);
+
+// ---- 后处理：RenderPass + SSAO + Bloom + 颗粒/暗角/色差 ----
+const composer=new EffectComposer(renderer);
+composer.addPass(new RenderPass(scene,camera));
+const ssao=new SSAOPass(scene,camera,innerWidth,innerHeight); ssao.kernelRadius=8; ssao.minDistance=0.003; ssao.maxDistance=0.05; /* SSAO 暂去:整体过暗 */
+composer.addPass(new UnrealBloomPass(new THREE.Vector2(innerWidth,innerHeight),0.45,0.6,0.85));
+// 颗粒+暗角+色差 合成 shader
+const Grade={uniforms:{tDiffuse:{value:null},t:{value:0},r:{value:1.45},s:{value:0.42}},
+  vertexShader:`varying vec2 v;void main(){v=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}`,
+  fragmentShader:`uniform sampler2D tDiffuse;uniform float t;uniform float r;uniform float s;varying vec2 v;
+   float rnd(vec2 p){return fract(sin(dot(p,vec2(12.9898,78.233)))*43758.5453);}
+   void main(){vec2 uv=v; float ca=0.0016;
+     vec4 c; c.r=texture2D(tDiffuse,uv+vec2(ca,0.0)).r; c.g=texture2D(tDiffuse,uv).g; c.b=texture2D(tDiffuse,uv-vec2(ca,0.0)).b; c.a=1.0; // 色差
+     float d=distance(uv,vec2(0.5)); c.rgb*=smoothstep(r,r-s,d); // 暗角
+     c.rgb+=(rnd(uv+t)-0.5)*0.05; // 胶片颗粒
+     c.rgb=mix(c.rgb,c.rgb*vec3(0.96,1.0,1.05),0.5); // 轻微冷调
+     gl_FragColor=c;}`};
+const grade=new ShaderPass(Grade); composer.addPass(grade); composer.addPass(new OutputPass());
+
+let tt=0;
+function animate(){ requestAnimationFrame(animate); tt+=0.016; grade.uniforms.t.value=tt;
+  camera.position.x=-1+Math.sin(tt*0.25)*0.6; camera.position.y=1.6+Math.sin(tt*0.4)*0.04; camera.lookAt(7,1.7,0.6);
+  dust.rotation.y=tt*0.02; composer.render(); }
+animate();
+addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);composer.setSize(innerWidth,innerHeight);});
+</script></body></html>
