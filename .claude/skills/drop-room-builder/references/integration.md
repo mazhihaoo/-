@@ -76,6 +76,23 @@ curl -s "http://localhost:3456/close?target=ID"
 - **临时调试钩子**（`__view`/`__walk`）正式交付前一律删。
 - 看什么：比例对不对、太黑没有(暗灰≠纯黑，要能看清家具)、家具穿模没、暗灰+暖灯焦点氛围在不在、地震破败感够不够。
 
+## Group 托盘技巧（房间任意层/朝向接入,DROP 批2 实战验证）
+
+房间函数大多建在二楼层(y=0)、门朝固定方向(+z)。当现有空间放不下、或要接到一楼层/换朝向时，用「Group 托盘」整体搬移——这是解决"房间建死在二楼+门朝+z"死结的关键：
+
+```javascript
+const g = new THREE.Group();
+buildXxxRoom(g, THREE, 0, 0);   // ★传 Group 当 scene★ —— 函数内 scene.add(x) 变成 g.add(x),所有物体被托盘接住
+g.position.set(目标x, F1, 目标z); // 整体搬到任意层(如一楼 y=F1=-3.3)
+g.rotation.y = Math.PI;          // 转门朝向(180°对南墙 / ±Math.PI/2 对东西墙),对准任意接入墙
+scene.add(g);
+// 碰撞层另用 ground/wallB 在目标世界位置加 visible=false(材质随便,反正不可见)
+```
+
+- **前提**：函数不能动 `scene.fog`/`scene.background`(挂到 Group 上无效)——集成前先 `grep "scene\.(fog|background)"` 确认为 0。
+- **适用**：root 模式和 scene.add 模式的函数都行(Group 鸭子类型当 scene 用,两种都被接住)。
+- DROP 批2 用它把电梯厅/书房/楼道整体搬到一楼层、转门朝向接入,实现"所有房间连成一个可自由走遍的大空间 + 3 条逃生路径"。
+
 ## 集成踩坑
 
 - **接缝错位 = 掉地板**：门洞处房间地板和现有地板必须精确对齐、无缝。改完必 `__walk`。
