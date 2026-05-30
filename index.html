@@ -8,7 +8,21 @@
 #win{position:fixed;inset:0;background:rgba(10,20,30,.72);z-index:20;display:none;align-items:center;justify-content:center;color:#fff;font-size:48px;font-weight:900;letter-spacing:8px;text-shadow:0 2px 20px #000}
 #start{position:fixed;inset:0;background:#0a0908;z-index:30;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;color:#9c6}
 #start button{background:none;border:1px solid #6a4;color:#9c6;padding:14px 40px;font-size:18px;letter-spacing:4px;border-radius:8px;cursor:pointer}
-#start p{color:#888;font-size:14px;line-height:1.8;text-align:center;max-width:560px}</style>
+#start p{color:#888;font-size:14px;line-height:1.8;text-align:center;max-width:560px}
+#hpwrap{position:fixed;left:18px;top:14px;width:200px;height:14px;background:rgba(0,0,0,.55);border:1px solid rgba(255,255,255,.15);border-radius:8px;z-index:14;overflow:hidden;display:none}
+#hpbar{height:100%;width:100%;background:linear-gradient(90deg,#4f4,#4f4);border-radius:8px;transition:width .3s,background .4s}
+#stwrap{position:fixed;left:18px;top:36px;width:200px;height:10px;background:rgba(0,0,0,.55);border:1px solid rgba(255,255,255,.12);border-radius:7px;z-index:14;overflow:hidden;display:none}
+#stbar{height:100%;width:100%;background:linear-gradient(90deg,#4af,#4af);border-radius:7px;transition:width .3s}
+#crouchind{position:fixed;left:18px;top:56px;color:#ffdf5a;font-size:13px;font-weight:700;text-shadow:0 0 8px #000;z-index:14;opacity:0;transition:opacity .2s}
+#pickup{position:fixed;left:50%;top:58%;transform:translate(-50%,-50%);color:#fff;font-size:16px;font-weight:700;text-shadow:0 0 12px #000,0 0 24px #39ff9b;z-index:13;opacity:0;transition:opacity .15s;text-align:center;pointer-events:none}
+#pickupmsg{position:fixed;left:50%;top:42%;transform:translate(-50%,-50%);color:#7CFF9B;font-size:22px;font-weight:900;text-shadow:0 0 20px #39ff9b;z-index:15;opacity:0;transition:opacity .2s;pointer-events:none}
+#damfl{position:fixed;inset:0;pointer-events:none;z-index:9;opacity:0;transition:opacity .1s;background:radial-gradient(ellipse at center,rgba(200,20,0,.35) 0%,rgba(200,0,0,.08) 50%,transparent 70%)}
+#stumble{position:fixed;left:50%;top:35%;transform:translate(-50%,-50%);color:#ff4444;font-size:30px;font-weight:900;text-shadow:0 0 30px rgba(255,0,0,.8);z-index:14;opacity:0;transition:opacity .15s;pointer-events:none}
+#taskprog{position:fixed;left:50%;top:52%;transform:translate(-50%,-50%);z-index:14;opacity:0;transition:opacity .2s;pointer-events:none;text-align:center}
+#taskprog .bar{width:200px;height:6px;background:rgba(255,255,255,.15);border-radius:3px;overflow:hidden;margin:6px auto 0}
+#taskprog .fill{height:100%;width:0%;background:linear-gradient(90deg,#ffdf5a,#7CFF9B);border-radius:3px;transition:width .1s}
+#taskprog .lbl{color:#fff;font-size:14px;font-weight:700;text-shadow:0 0 10px #000}
+#warning{position:fixed;left:50%;top:64%;transform:translate(-50%,-50%);color:#ff4444;font-size:15px;font-weight:700;text-shadow:0 0 14px rgba(255,0,0,.7);z-index:14;opacity:0;transition:opacity .3s;pointer-events:none;text-align:center}</style>
 </head><body>
 <div id="app"></div><div id="cross"></div>
 <div id="hud"></div>
@@ -28,13 +42,22 @@
 </div>
 <div id="obj" style="position:fixed;left:50%;top:7%;transform:translateX(-50%);color:#ffdf5a;font-size:19px;font-weight:700;text-shadow:0 0 14px #000;opacity:0;transition:opacity .3s;z-index:12;text-align:center;max-width:84%"></div>
 <div id="wake" style="position:fixed;inset:0;display:flex;align-items:center;justify-content:center;color:#e8e2d6;font-size:26px;letter-spacing:4px;text-shadow:0 2px 12px #000;opacity:0;transition:opacity 1.2s;z-index:13;white-space:pre-line;text-align:center;pointer-events:none"></div>
+<div id="hpwrap"><div id="hpbar"></div></div>
+<div id="stwrap"><div id="stbar"></div></div>
+<div id="crouchind">⇩ 蹲下</div>
+<div id="pickup"></div>
+<div id="pickupmsg"></div>
+<div id="damfl"></div>
+<div id="stumble"></div>
+<div id="taskprog"><div class="lbl"></div><div class="bar"><div class="fill"></div></div></div>
+<div id="warning"></div>
 <div id="death" style="position:fixed;inset:0;background:linear-gradient(180deg,rgba(8,4,4,0) 26%,rgba(8,4,4,.5) 60%,rgba(8,4,4,.9) 100%);z-index:25;display:none;flex-direction:column;align-items:center;justify-content:flex-end;gap:12px;padding-bottom:6vh">
   <div style="color:#b71a0e;font-size:66px;font-weight:900;letter-spacing:12px;text-shadow:0 0 40px rgba(183,26,14,.6)">你 死 了</div>
   <div id="dreason" style="color:#fff;font-size:20px;max-width:62%;text-align:center;line-height:1.55"></div>
   <button id="dretry" style="background:linear-gradient(180deg,#d4321e,#8c1d14);color:#fff;border:none;padding:14px 44px;font-size:19px;font-weight:800;letter-spacing:4px;border-radius:10px;cursor:pointer;margin-top:8px">再 来 一 次</button>
 </div>
 <div id="start"><h2>余 震 · DROP</h2>
-<p><b style="color:#cdb">凌晨 4:12，一场地震把你从睡梦中震醒。</b><br>从二楼卧室逃出单元楼，活下去——把救命的本能，刻进身体。<br><br><b style="color:#9c6">WASD</b> 移动　·　<b style="color:#9c6">鼠标</b> 环顾四周　·　<b style="color:#9c6">ESC</b> 松开鼠标<br><br>① 主震来时<b style="color:#ff7">别往外冲</b>——退到 <b style="color:#7CFF9B">绿色光圈</b>里蹲下护头，撑过去<br>② <b style="color:#ff7">红圈</b> = 头顶要塌，别停快穿过；<b style="color:#ff7">亮着的电梯别坐</b><br>③ 穿过客厅 → 下楼梯 → 冲出 <b style="color:#7CFF9B">绿色单元门</b> = 生还<br>逃出后会给你打分 <b style="color:#7CFF9B">A+~D</b>，看你能不能把命练成本能<br><br>🎧 戴耳机 · 用电脑 Chrome，体验最佳</p>
+<p><b style="color:#cdb">凌晨 4:12，一场地震把你从睡梦中震醒。</b><br>从二楼卧室逃出单元楼，活下去——把救命的本能，刻进身体。<br><br><b style="color:#9c6">WASD</b> 移动　·　<b style="color:#9c6">鼠标</b> 环顾四周　·　<b style="color:#9c6">ESC</b> 松开鼠标<br><b style="color:#ff7">Shift</b> 冲刺(耗体力)　·　<b style="color:#ff7">Ctrl/C</b> 蹲下(减伤)　·　<b style="color:#ff7">E</b> 拾取物品<br><br>① 主震来时<b style="color:#ff7">别往外冲</b>——退到 <b style="color:#7CFF9B">绿色光圈</b>里蹲下护头，撑过去<br>② <b style="color:#ff7">红圈</b> = 头顶要塌，别停快穿过；<b style="color:#ff7">亮着的电梯别坐</b><br>③ 穿过客厅 → 下楼梯 → 冲出 <b style="color:#7CFF9B">绿色单元门</b> = 生还<br>逃出后会给你打分 <b style="color:#7CFF9B">A+~D</b>，看你能不能把命练成本能<br><br>🎧 戴耳机 · 用电脑 Chrome，体验最佳</p>
 <button id="b">▶ 醒 来</button></div>
 <script type="importmap">{ "imports": { "three":"./three.module.js" }}</script>
 <script type="module">
@@ -2116,6 +2139,22 @@ const EYE=1.6;
 let player=new THREE.Vector3(-9,EYE,0);
 let yaw=-Math.PI/2,pitch=-0.05,locked=false;const keys={};   // 朝东(门口方向)
 let won=false;
+// ---- 四大新增系统 ----
+let hp=100,maxHp=100;
+let stamina=100,maxStamina=100;
+let crouching=false,crouchKeyWasDown=false;
+let sprinting=false;
+let pickups=[],pickupCooldown=0,pickupMsgTimer=0;
+let taskTargets=[];  // 任务交互目标(燃气阀/孩子NPC)
+// ---- 摔倒系统 ----
+let stumbling=false,stumbleTimer=0,stumbleCooldown=0;
+// ---- 任务系统 ----
+let tasksCompleted={gasOff:false,firstAid:false,childRescued:false};
+let pickupAction=0;  // 拾取动作计时器(>0=正在执行动作,不能移动)
+let taskTarget=null;  // 当前正在交互的任务对象引用
+// ---- 安全区系统 ----
+let safeZones=[];     // {x,z,r,isReal,group} 真正安全区+伪安全区
+// ---- 原有 ----
 let phase='wake', shake=0, quakeT=0, hazards=[], sinceSpawn=0;
 // 过场场景状态:死亡黑盒/室外结局靠"切场景"实现——dead/won 时相机切到地下深处的展台/室外楼,
 //   bgBak/fogBak 备份正常游戏的天空/雾(过场会改氛围),复活/重开时还原。cinemaT=过场累计秒(驱动落灰等)。
@@ -2134,6 +2173,26 @@ function resetStats(){stats={quakeMs:0,escapeMs:0,nearMiss:0,tookCover:null,elev
 //   主震(MAIN_SHOCK 秒)期间必须退到床边"安全圈"蹲住护头;暴露在外=密集坠物砸落=死。
 const MAIN_SHOCK=6;                  // 主震持续秒数:这段时间必须就近躲避,不能往外冲
 const SAFE={x:-8.6,z:-1.6,r:1.35};   // 床边安全位(刻意避开会倒的高衣柜):蹲这儿护头=活
+// ===== 安全区系统:真正掩护物 vs 伪安全区(教育:破除生命三角伪知识) =====
+// safeZones[] 每元素 {x,z,r,isReal,group}。主震时显示,余震隐藏。真安全区蹲下免伤;伪安全区蹲下反加伤。
+function spawnSafeZones(){
+  safeZones.forEach(z=>{if(z.group)scene.remove(z.group);});safeZones=[];
+  function makeZone(x,z,r,isReal){
+    const g=new THREE.Group();g.position.set(x,0.06,z);
+    const color=isReal?0x4dffa6:0xff3020;
+    const ring=new THREE.Mesh(new THREE.RingGeometry(r-0.3,r,40),new THREE.MeshBasicMaterial({color,transparent:true,opacity:.65,side:THREE.DoubleSide,blending:THREE.AdditiveBlending,depthWrite:false}));ring.rotation.x=-Math.PI/2;g.add(ring);
+    const beam=new THREE.Mesh(new THREE.CylinderGeometry(r-0.2,r-0.4,2.6,24,1,true),new THREE.MeshBasicMaterial({color,transparent:true,opacity:.1,side:THREE.DoubleSide,blending:THREE.AdditiveBlending,depthWrite:false}));beam.position.y=1.3;g.add(beam);
+    g.visible=false;scene.add(g);safeZones.push({x,z,r,isReal,group:g});return g;
+  }
+  // 真正安全区(蹲下免伤)
+  makeZone(SAFE.x,SAFE.z,SAFE.r,true);                    // 卧室床边
+  makeZone(2.1,8.1,1.2,true);                              // 餐厅桌旁(世界坐标≈4.5-2.4,7.5+0.6)
+  makeZone(23.6,F1+3.7,1.0,true);                          // 书房桌旁(一楼,如果没被压垮)
+  // 伪安全区(蹲下反加伤):教育玩家破除伪知识
+  makeZone(7.0,8.0,1.0,false);                             // 阳台"三角区"(伪生命三角)
+  makeZone(4.8,8.1,0.8,false);                             // 餐桌正下方(伪黄金三角)
+  // 保留:卧室safeGroup已经在scene中,由原有逻辑控制visible
+}
 let coverHeld=0,mainShockDone=false; // coverHeld=已在安全圈蹲了多久;mainShockDone=主震是否已结束(一次性切换守卫)
 // 安全圈地面标记:绿色脉动光环(区别于红色危险圈),告诉玩家"蹲这里"
 // safeGroup=不旋转的父容器(整体控制显隐);内含平铺的发光环 + 一束朝上的淡绿光柱。
@@ -2164,11 +2223,45 @@ function crash(){if(!ac)return;const sr=ac.createBufferSource(),g=ac.createGain(
 const O=id=>document.getElementById(id);
 function setObj(t){O('obj').textContent=t;O('obj').style.opacity=t?1:0;}
 function wakeMsg(t){O('wake').textContent=t;O('wake').style.opacity=1;setTimeout(()=>O('wake').style.opacity=0,2400);}
+// ===== 血量/体力系统 =====
+function updateHpBar(){const pct=hp/maxHp*100;O('hpbar').style.width=pct+'%';let r,g;if(pct>60){r=Math.round(255-(pct-60)/40*180);g=255;}else if(pct>30){r=255;g=Math.round(255-(60-pct)/30*100);}else{r=255;g=Math.round(pct/30*120);}O('hpbar').style.background='linear-gradient(90deg,rgb('+r+','+g+',40),rgb('+Math.max(0,r-40)+','+Math.max(0,g-30)+',20))';}
+function updateStBar(){const pct=stamina/maxStamina*100;O('stbar').style.width=pct+'%';if(pct>50)O('stbar').style.background='linear-gradient(90deg,#4af,#6cf)';else if(pct>20)O('stbar').style.background='linear-gradient(90deg,#fa4,#fc6)';else O('stbar').style.background='linear-gradient(90deg,#f44,#f66)';}
+function randDmg(lo,hi){return lo+Math.random()*(hi-lo);}
+function dealDamage(amount){if(phase==='dead')return;hp=Math.max(0,hp-amount);updateHpBar();O('damfl').style.opacity='1';setTimeout(()=>O('damfl').style.opacity='0',120);if(hp<=0)die('你被坠落的重物砸中，失血过多而死。','被坠落物砸中');}
+function getSafeZoneType(){for(const z of safeZones){if(Math.hypot(player.x-z.x,player.z-z.z)<z.r)return z.isReal?'real':'fake';}return'none';}
+function calcHazardDamage(){const zone=getSafeZoneType();if(zone==='real'&&crouching)return 0;if(zone==='fake'&&crouching)return randDmg(35,45);if(crouching)return 18;return randDmg(30,40);}
+function showPickupMsg(txt){O('pickupmsg').textContent=txt;O('pickupmsg').style.opacity='1';pickupMsgTimer=1.5;}
+// ===== 拾取物生成 =====
+function spawnPickups(){pickups.forEach(p=>scene.remove(p));pickups=[];
+  const locs=[{x:-9,z:-2.8,y:0.35,t:'medkit',d:'医疗包'},{x:-2,z:-1,y:0.35,t:'energy',d:'能量饮料'},{x:3,z:-2.8,y:0.35,t:'medkit',d:'医疗包'},{x:7,z:1.8,y:0.35,t:'energy',d:'能量饮料'},{x:14,z:0,y:0.35,t:'medkit',d:'医疗包'},{x:22,z:1.8,y:F1+0.35,t:'medkit',d:'医疗包'},{x:27,z:-1.2,y:F1+0.35,t:'energy',d:'能量饮料'},
+    // 任务物品:浴室急救包
+    {x:-10.35,z:-5.7,y:0.82,t:'firstAid',d:'急救包(任务)'}];
+  locs.forEach(l=>{const g=new THREE.Group();g.position.set(l.x,l.y,l.z);
+    const isTask=l.t==='firstAid';
+    const box=new THREE.Mesh(new THREE.BoxGeometry(0.2,0.15,0.12),new THREE.MeshStandardMaterial({color:isTask?0xfff8e8:l.t==='medkit'?0xffffff:0x4488ff,emissive:isTask?0xffaa00:l.t==='medkit'?0xff4444:0x44aaff,emissiveIntensity:isTask?.9:.6,roughness:.4,metalness:.2}));box.position.y=.08;box.castShadow=true;g.add(box);
+    const icon=new THREE.Mesh(isTask?new THREE.BoxGeometry(.06,.08,.06):l.t==='medkit'?new THREE.CylinderGeometry(.04,.04,.06,8):new THREE.CylinderGeometry(.04,.03,.1,8),new THREE.MeshBasicMaterial({color:isTask?0xffaa00:l.t==='medkit'?0xff2020:0x40c0ff}));icon.position.y=.18;g.add(icon);
+    g.userData={type:l.t,desc:l.d,baseY:g.position.y,phase:Math.random()*Math.PI*2};scene.add(g);pickups.push(g);});
+  // 厨房燃气阀任务标记(不可拾取,用E交互)
+  if(!taskTargets)taskTargets=[];
+  taskTargets.forEach(t=>{if(t.group)scene.remove(t.group);});taskTargets=[];
+  const gasValve={x:4.5+1.0,z:-6.0-1.72,worldY:0.55};
+  const gvMark=new THREE.Group();gvMark.position.set(gasValve.x,gasValve.worldY,gasValve.z);
+  const gvBox=new THREE.Mesh(new THREE.BoxGeometry(0.15,0.15,0.15),new THREE.MeshStandardMaterial({color:0xff4400,emissive:0xff4400,emissiveIntensity:.7,roughness:.3,metalness:.3}));gvBox.castShadow=true;gvMark.add(gvBox);
+  gvMark.userData={type:'gasValve',desc:'关闭燃气阀',baseY:gasValve.worldY,phase:0};scene.add(gvMark);taskTargets.push(gvMark);
+  // 儿童房孩子NPC(几何体拼的小人,交互点)
+  const kid=new THREE.Group();kid.position.set(12,0.07,-5.2);  // 儿童房床边地上
+  const head=new THREE.Mesh(new THREE.SphereGeometry(.22,16,12),new THREE.MeshStandardMaterial({color:0xf5d5b8,roughness:.7}));head.position.y=.92;kid.add(head);
+  const body=new THREE.Mesh(new THREE.BoxGeometry(.32,.35,.22),new THREE.MeshStandardMaterial({color:0x5b8def,roughness:.6}));body.position.y=.55;kid.add(body);
+  for(const s of[-1,1]){const arm=new THREE.Mesh(new THREE.CylinderGeometry(.05,.055,.3,8),new THREE.MeshStandardMaterial({color:0xf5d5b8,roughness:.7}));arm.position.set(s*.2,.62,0);arm.rotation.z=s*.3;kid.add(arm);}
+  for(const s of[-1,1]){const leg=new THREE.Mesh(new THREE.CylinderGeometry(.07,.065,.35,8),new THREE.MeshStandardMaterial({color:0x3a5a9f,roughness:.7}));leg.position.set(s*.1,.2,0);leg.rotation.x=.4;kid.add(leg);}
+  const glow=new THREE.Mesh(new THREE.RingGeometry(.5,.6,32),new THREE.MeshBasicMaterial({color:0xffdd88,transparent:true,opacity:.5,side:THREE.DoubleSide,blending:THREE.AdditiveBlending,depthWrite:false}));glow.rotation.x=-Math.PI/2;glow.position.y=.02;kid.add(glow);
+  kid.userData={type:'child',desc:'带上孩子',baseY:0.07,phase:0};kid.castShadow=true;scene.add(kid);taskTargets.push(kid);}
+// ===== 原有危险物系统 =====
 const mHaz=new THREE.MeshStandardMaterial({color:0xb0aca4,roughness:1});
-function spawnHazard(){const hx=player.x+(Math.random()-0.5)*4,hz=player.z+(Math.random()-0.5)*3;
-  const warn=new THREE.Mesh(new THREE.RingGeometry(0.4,0.6,18),new THREE.MeshBasicMaterial({color:0xff2010,transparent:true,opacity:.7,side:THREE.DoubleSide}));warn.rotation.x=-Math.PI/2;warn.position.set(hx,player.y-EYE+0.06,hz);scene.add(warn);
-  const ob=new THREE.Mesh(new THREE.BoxGeometry(0.4,0.3,0.4),mHaz);ob.position.set(hx,player.y-EYE+3,hz);ob.castShadow=true;scene.add(ob);
-  hazards.push({warn,ob,hx,hz,baseY:player.y-EYE,t:0,fall:false,vy:0,done:false});}
+function spawnHazard(){const effEye=crouching?0.7:EYE;const hx=player.x+(Math.random()-0.5)*4,hz=player.z+(Math.random()-0.5)*3;
+  const warn=new THREE.Mesh(new THREE.RingGeometry(0.4,0.6,18),new THREE.MeshBasicMaterial({color:0xff2010,transparent:true,opacity:.7,side:THREE.DoubleSide}));warn.rotation.x=-Math.PI/2;warn.position.set(hx,player.y-effEye+0.06,hz);scene.add(warn);
+  const ob=new THREE.Mesh(new THREE.BoxGeometry(0.4,0.3,0.4),mHaz);ob.position.set(hx,player.y-effEye+3,hz);ob.castShadow=true;scene.add(ob);
+  hazards.push({warn,ob,hx,hz,baseY:player.y-effEye,t:0,fall:false,vy:0,done:false});}
 function clearHazards(){hazards.forEach(h=>{scene.remove(h.warn);scene.remove(h.ob);});hazards=[];}
 function die(reason,short,advice){if(phase==='dead')return;phase='dead';rumble(0.15);if(locked)document.exitPointerLock();
   bgBak=scene.background;fogBak=scene.fog;                          // 备份氛围(死亡场景会把世界改成暗房)
@@ -2187,7 +2280,11 @@ function showReport(){
   if(sec>22)score-=Math.min(28,(sec-22)*1.1);        // 慢于22秒开始扣(磨蹭=危险)
   if(stats.tookCover===false)score-=26;              // 主震时乱跑没躲(关①触发)
   if(stats.tookCover===true)score+=4;                // 躲对了加分
-  score=Math.max(20,Math.min(100,Math.round(score)));
+  if(!tasksCompleted.gasOff)score-=20;               // 未关燃气阀 -20
+  if(!tasksCompleted.firstAid)score-=20;             // 未带急救包 -20
+  if(!tasksCompleted.childRescued)score-=20;         // 未救孩子 -20
+  if(tasksCompleted.gasOff&&tasksCompleted.firstAid&&tasksCompleted.childRescued)score+=10; // 三项全完成
+  score=Math.max(15,Math.min(100,Math.round(score)));
   // ---- 分数→评级+颜色+一句点评 ----
   const g=score>=95?['A+','#7CFF9B','教科书级。你的身体已经记住了。']
         :score>=84?['A','#9be37a','非常好。真地震里你大概率能活下来。']
@@ -2201,12 +2298,17 @@ function showReport(){
   rows.push([(stats.nearMiss===0?'🛡 ':'⚠ ')+'与坠落物擦肩',stats.nearMiss+' 次',stats.nearMiss===0]);
   if(stats.tookCover!==null)rows.push(['主震时就近躲避护头',stats.tookCover?'做到了':'你直接往外冲了',stats.tookCover]);
   if(stats.elevatorAvoided!==null)rows.push(['走楼梯而非电梯',stats.elevatorAvoided?'明智':'险些致命',stats.elevatorAvoided]);
+  rows.push(['🧯 关闭厨房燃气阀',tasksCompleted.gasOff?'已关闭':'未关闭',tasksCompleted.gasOff]);
+  rows.push(['💊 带上急救包',tasksCompleted.firstAid?'已带上':'未带上',tasksCompleted.firstAid]);
+  rows.push(['👶 救出孩子',tasksCompleted.childRescued?'已救出':'未救出',tasksCompleted.childRescued]);
   O('rrows').innerHTML=rows.map(r=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 13px;background:rgba(255,255,255,.04);border-left:3px solid ${r[2]?'#2fae5e':'#d4321e'};border-radius:6px"><span>${r[0]}</span><b style="color:${r[2]?'#9be37a':'#ff8a7a'}">${r[1]}</b></div>`).join('');
-  O('rfoot').innerHTML='📌 <b style="color:#cdb">「趴下·遮挡·稳住」</b>(Drop, Cover, Hold On) 是国际通用地震守则。多数伤亡来自晃动中乱跑被坠物砸中——先就近护头,别急着冲出去。&nbsp;—&nbsp;据 USGS / FEMA';
+  O('rfoot').innerHTML='📌 <b style="color:#cdb">「趴下·遮挡·稳住」</b>(Drop, Cover, Hold On) 是国际通用地震守则。地震前先关燃气阀、带上急救包、保护孩子——少做一样都可能致命。&nbsp;—&nbsp;据 USGS / FEMA';
   O('report').style.display='flex';
 }
 O('rretry').onclick=()=>{startGame();renderer.domElement.requestPointerLock&&renderer.domElement.requestPointerLock();};
-function startGame(){phase='wake';won=false;quakeT=0;shake=0;clearHazards();player.copy(startPos);yaw=-Math.PI/2;pitch=-0.05;resetStats();coverHeld=0;mainShockDone=false;safeGroup.visible=false;O('report').style.display='none';
+function startGame(){console.log('startGame called');phase='wake';won=false;quakeT=0;shake=0;clearHazards();player.copy(startPos);yaw=-Math.PI/2;pitch=-0.05;resetStats();coverHeld=0;mainShockDone=false;safeGroup.visible=false;O('report').style.display='none';
+  hp=maxHp;updateHpBar();stamina=maxStamina;updateStBar();crouching=false;sprinting=false;stumbling=false;stumbleTimer=0;stumbleCooldown=0;pickupAction=0;taskTarget=null;O('crouchind').style.opacity='0';O('hpwrap').style.display='block';O('stwrap').style.display='block';O('stumble').style.opacity='0';O('taskprog').style.opacity='0';O('warning').style.opacity='0';
+  console.log('resetting tasks');tasksCompleted={gasOff:false,firstAid:false,childRescued:false};console.log('calling spawnSafeZones');spawnSafeZones();console.log('calling spawnPickups');spawnPickups();console.log('startGame done');
   if(deathFx){deathFx.dispose();deathFx=null;}                      // 清死亡展台(释放显存)
   if(exitFx){scene.remove(exitFx.root);exitFx=null;}               // 清室外结局
   if(bgBak!==null){scene.background=bgBak;bgBak=null;}             // 还原正常游戏天空
@@ -2227,15 +2329,40 @@ function canMove(from,to){const dir=new THREE.Vector3().subVectors(to,from);cons
 const clock=new THREE.Clock();
 // stepGame(dt):一帧游戏逻辑(移动/地面跟随/地震/坠落物/通关/渲染)。抽出来便于手动单步验证;animate 负责 rAF 节奏。
 function stepGame(dt){
-  if((phase==='quake'||phase==='wake')&&(keys['KeyW']||keys['KeyA']||keys['KeyS']||keys['KeyD'])){const sp=3.4*dt;const e=new THREE.Euler(0,yaw,0,'YXZ');const fwd=new THREE.Vector3(0,0,-1).applyEuler(e),rgt=new THREE.Vector3(1,0,0).applyEuler(e);
+  // 蹲下切换(Ctrl/C 边缘触发)
+  const cKey=(keys['ControlLeft']||keys['ControlRight']||keys['KeyC']);
+  if(cKey&&!crouchKeyWasDown){crouching=!crouching;crouchKeyWasDown=true;}
+  if(!cKey)crouchKeyWasDown=false;
+  O('crouchind').style.opacity=crouching?'1':'0';
+  // 移动(含冲刺/体力/蹲下减速) —— 摔倒或执行动作时禁止移动
+  const canAct=!stumbling&&pickupAction<=0;
+  if(canAct&&(phase==='quake'||phase==='wake')&&(keys['KeyW']||keys['KeyA']||keys['KeyS']||keys['KeyD'])){sprinting=(keys['ShiftLeft']||keys['ShiftRight'])&&stamina>0;let sp=3.4*dt;if(crouching)sp*=.6;if(sprinting)sp*=1.6;const e=new THREE.Euler(0,yaw,0,'YXZ');const fwd=new THREE.Vector3(0,0,-1).applyEuler(e),rgt=new THREE.Vector3(1,0,0).applyEuler(e);
     let mv=new THREE.Vector3();if(keys['KeyW'])mv.add(fwd);if(keys['KeyS'])mv.sub(fwd);if(keys['KeyA'])mv.sub(rgt);if(keys['KeyD'])mv.add(rgt);
     if(mv.lengthSq()>0){mv.normalize().multiplyScalar(sp);
       const tx=new THREE.Vector3(player.x+mv.x,player.y,player.z);if(canMove(player,tx))player.x=tx.x;
-      const tz=new THREE.Vector3(player.x,player.y,player.z+mv.z);if(canMove(player,tz))player.z=tz.z;}}
+      const tz=new THREE.Vector3(player.x,player.y,player.z+mv.z);if(canMove(player,tz))player.z=tz.z;}
+  // 体力消耗/回复
+  const isMoving=keys['KeyW']||keys['KeyA']||keys['KeyS']||keys['KeyD'];
+  if(sprinting&&isMoving){stamina=Math.max(0,stamina-dt*28);updateStBar();}else{const regen=crouching?16:12;stamina=Math.min(maxStamina,stamina+dt*regen);updateStBar();}
+  }
+  // 地面跟随(蹲下时降低视线高度)
+  const effectiveEye=crouching?0.7:EYE;
   downRay.set(new THREE.Vector3(player.x,player.y+1.8,player.z),new THREE.Vector3(0,-1,0));downRay.far=12;
   const hit=downRay.intersectObjects(grounds,false);
-  if(hit.length)player.y+=(hit[0].point.y+EYE-player.y)*Math.min(dt*10,1);
+  if(hit.length)player.y+=(hit[0].point.y+effectiveEye-player.y)*Math.min(dt*10,1);
   let tg=phase==='quake'?(quakeT<MAIN_SHOCK?0.36:0.22):0;tg*=(keys['KeyW']||keys['KeyA']||keys['KeyS']||keys['KeyD'])?1.3:0.7;shake+=(tg-shake)*Math.min(dt*4,1);const sk=shake;
+  // 摔倒系统:地震中跑动概率摔倒
+  if(phase==='quake'&&!stumbling&&stumbleCooldown<=0&&canAct){
+    const isMoving=keys['KeyW']||keys['KeyA']||keys['KeyS']||keys['KeyD'];
+    if(isMoving){let spdF=sprinting?2.0:crouching?0.4:1.0;let shkF=quakeT<MAIN_SHOCK?1.5:1.0;let prob=0.15*spdF*shkF*dt;if(Math.random()<prob){stumbling=true;stumbleTimer=.8;let dmg=randDmg(8,12);dealDamage(dmg);stamina=Math.max(0,stamina-randDmg(15,20));updateStBar();O('stumble').textContent='摔倒!';O('stumble').style.opacity='1';setTimeout(()=>O('stumble').style.opacity='0',600);}}
+    // 地震跑动持续扣血
+    if(!sprinting&&!crouching)hp=Math.max(0,hp-dt*1);else if(sprinting)hp=Math.max(0,hp-dt*3);updateHpBar();if(hp<=0)die('地震中剧烈奔跑导致体力不支，被坠落物砸中。','地震跑动虚脱');}
+  if(stumbling){stumbleTimer-=dt;if(stumbleTimer<=0){stumbling=false;stumbleCooldown=2.0;}}
+  if(stumbleCooldown>0)stumbleCooldown-=dt;
+  // 拾取/使用动作延迟(1.5秒不能移动)
+  if(pickupAction>0){pickupAction-=dt;const pct=(1-pickupAction/1.5)*100;O('taskprog').style.opacity='1';O('taskprog').querySelector('.fill').style.width=pct+'%';if(pickupAction<=0){O('taskprog').style.opacity='0';if(taskTarget){const t=taskTarget;if(t==='gasValve'){tasksCompleted.gasOff=true;showPickupMsg('燃气阀已关闭!');const gv=taskTargets.find(k=>k.userData.type==='gasValve');if(gv){scene.remove(gv);taskTargets=taskTargets.filter(k=>k!==gv);}}else if(t==='child'){tasksCompleted.childRescued=true;const kid=taskTargets.find(k=>k.userData.type==='child');if(kid){scene.remove(kid);taskTargets=taskTargets.filter(k=>k!==kid);}showPickupMsg('你带上了孩子!');}else if(t&&t.userData){const ut=t.userData.type;if(ut==='medkit'){hp=Math.min(maxHp,hp+30);updateHpBar();showPickupMsg('+30 生命值');}else if(ut==='energy'){stamina=Math.min(maxStamina,stamina+40);updateStBar();showPickupMsg('+40 体力');}else if(ut==='firstAid'){tasksCompleted.firstAid=true;hp=Math.min(maxHp,hp+30);updateHpBar();showPickupMsg('急救包+30 生命值 (任务完成)');}scene.remove(t);pickups=pickups.filter(p=>p!==t);}}taskTarget=null;}}
+  // 安全区可见性:主震全部显示,余震全隐藏;伪安全区蹲下警告
+  if(phase==='quake'&&!won){const mainQ=quakeT<MAIN_SHOCK;safeZones.forEach(z=>{if(z.group)z.group.visible=mainQ;if(mainQ&&z.group&&z.isReal&&z.group.children[0])z.group.children[0].material.opacity=0.35+0.3*Math.sin(performance.now()*0.006);});if(crouching){const zone=getSafeZoneType();if(zone==='fake')O('warning').style.opacity='1';else O('warning').style.opacity='0';}else O('warning').style.opacity='0';}
   if(phase==='dead'&&deathFx){          // 死亡:相机切到地下死亡展台,俯视聚光下被压的人
     cinemaT+=dt;deathFx.update(cinemaT);
     camera.position.set(4.2,-117.0,5.6);camera.rotation.set(0,0,0);camera.lookAt(0,-119.5,0);
@@ -2246,6 +2373,19 @@ function stepGame(dt){
     camera.position.set(player.x+Math.sin(performance.now()*0.037)*0.04*sk,player.y+Math.cos(performance.now()*0.043)*0.04*sk,player.z+Math.sin(performance.now()*0.029)*0.03*sk);
     camera.rotation.order='YXZ';camera.rotation.y=yaw+Math.cos(performance.now()*0.027)*0.012*sk;camera.rotation.x=pitch+Math.sin(performance.now()*0.031)*0.012*sk;camera.rotation.z=Math.sin(performance.now()*0.053)*0.03*sk;
   }
+  // 拾取物+任务目标浮动动画
+  pickups.forEach(p=>{p.userData.phase+=dt*1.8;p.position.y=p.userData.baseY+Math.sin(p.userData.phase)*.06;p.rotation.y+=dt*1.2;});
+  taskTargets.forEach(t=>{t.userData.phase+=dt*1.8;t.position.y=t.userData.baseY+Math.sin(t.userData.phase)*.06;t.rotation.y+=dt*1.2;});
+  // 拾取/任务交互(E键,带1.5秒动作延迟)
+  let nearP=null,nearD=2.0;pickups.forEach(p=>{const dx=player.x-p.position.x,dz=player.z-p.position.z;const d=Math.hypot(dx,dz);if(d<nearD){nearD=d;nearP=p;}});
+  let nearT=null,nearTD=2.5;taskTargets.forEach(t=>{const dx=player.x-t.position.x,dz=player.z-t.position.z;const d=Math.hypot(dx,dz);if(d<nearTD){nearTD=d;nearT=t;}});
+  if(keys['KeyE']&&pickupAction<=0&&pickupCooldown<=0&&canAct){
+    if(nearT&&nearTD<2.5){pickupAction=1.5;taskTarget=nearT.userData.type;O('taskprog').querySelector('.lbl').textContent='正在'+nearT.userData.desc+'...';O('taskprog').style.opacity='1';pickupCooldown=.3;}
+    else if(nearP&&nearD<2.0){pickupAction=1.5;taskTarget=nearP;O('taskprog').querySelector('.lbl').textContent='正在使用 '+nearP.userData.desc+'...';O('taskprog').style.opacity='1';pickupCooldown=.3;}
+  }
+  if(pickupCooldown>0)pickupCooldown-=dt;
+  if(nearP&&pickupAction<=0){O('pickup').textContent='按 E 拾取 '+nearP.userData.desc;O('pickup').style.opacity='1';}else if(nearT&&pickupAction<=0){O('pickup').textContent='按 E '+nearT.userData.desc;O('pickup').style.opacity='1';}else{O('pickup').style.opacity='0';}
+  if(pickupMsgTimer>0){pickupMsgTimer-=dt;if(pickupMsgTimer<=0)O('pickupmsg').style.opacity='0';}
   // 地震:① 主震(必须就近躲避护头) → ② 余震逃生(往东撤离,躲坠落物)
   if(phase==='quake'&&!won){quakeT+=dt;
     if(quakeT<MAIN_SHOCK){                                 // —— ① 主震:Drop, Cover, Hold On ——
@@ -2267,8 +2407,8 @@ function stepGame(dt){
     for(const h of hazards){if(h.done)continue;h.t+=dt;
       if(!h.fall){h.warn.material.opacity=0.4+0.4*Math.sin(h.t*12);if(h.t>1.1){h.fall=true;scene.remove(h.warn);}}
       else{h.vy-=dt*16;h.ob.position.y+=h.vy*dt;h.ob.rotation.x+=dt*3;if(h.ob.position.y<=h.baseY+0.2){h.ob.position.y=h.baseY+0.2;h.done=true;crash();
-        const dHaz=Math.hypot(player.x-h.hx,player.z-h.hz),sameFloor=Math.abs(player.y-EYE-h.baseY)<1.8;
-        if(dHaz<0.85&&Math.abs(player.y-EYE-h.baseY)<1.5)die('被坠落的天花板碎块砸中。','被坠落的天花板砸中');
+        const effE=crouching?0.7:EYE;const dHaz=Math.hypot(player.x-h.hx,player.z-h.hz),sameFloor=Math.abs(player.y-effE-h.baseY)<1.8;
+        if(dHaz<0.85&&Math.abs(player.y-effE-h.baseY)<1.5){let dmg=calcHazardDamage();dealDamage(dmg);}
         else if(dHaz<2.3&&sameFloor)stats.nearMiss++;   // 没砸死但落点很近=与死神擦肩,计入鉴定
       }}}}
   // 关③:电梯诱惑——发亮的电梯井在召唤;走近=坠入断电卡死的铁棺材,绕开走楼梯=明智
