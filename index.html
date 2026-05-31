@@ -19,10 +19,14 @@
 #damfl{position:fixed;inset:0;pointer-events:none;z-index:9;opacity:0;transition:opacity .1s;background:radial-gradient(ellipse at center,rgba(200,20,0,.35) 0%,rgba(200,0,0,.08) 50%,transparent 70%)}
 #stumble{position:fixed;left:50%;top:35%;transform:translate(-50%,-50%);color:#ff4444;font-size:30px;font-weight:900;text-shadow:0 0 30px rgba(255,0,0,.8);z-index:14;opacity:0;transition:opacity .15s;pointer-events:none}
 #taskprog{position:fixed;left:50%;top:52%;transform:translate(-50%,-50%);z-index:14;opacity:0;transition:opacity .2s;pointer-events:none;text-align:center}
-#taskprog .bar{width:200px;height:6px;background:rgba(255,255,255,.15);border-radius:3px;overflow:hidden;margin:6px auto 0}
-#taskprog .fill{height:100%;width:0%;background:linear-gradient(90deg,#ffdf5a,#7CFF9B);border-radius:3px;transition:width .1s}
-#taskprog .lbl{color:#fff;font-size:14px;font-weight:700;text-shadow:0 0 10px #000}
-#warning{position:fixed;left:50%;top:64%;transform:translate(-50%,-50%);color:#ff4444;font-size:15px;font-weight:700;text-shadow:0 0 14px rgba(255,0,0,.7);z-index:14;opacity:0;transition:opacity .3s;pointer-events:none;text-align:center}</style>
+#taskprog .bar{width:200px;height:14px;background:rgba(255,255,255,.15);border-radius:7px;overflow:hidden;margin:6px auto 0;border:1px solid rgba(255,255,255,.1)}
+#taskprog .fill{height:14px;width:0%;background:linear-gradient(90deg,#7CFF9B,#2fae5e);border-radius:7px;transition:width .15s}
+#taskprog .lbl{color:#fff;font-size:14px;font-weight:700;text-shadow:0 0 10px #000;margin-bottom:2px}
+#warning{position:fixed;left:50%;top:64%;transform:translate(-50%,-50%);color:#ff4444;font-size:15px;font-weight:700;text-shadow:0 0 14px rgba(255,0,0,.7);z-index:14;opacity:0;transition:opacity .3s;pointer-events:none;text-align:center}
+#tutorial{position:fixed;left:50%;top:40%;transform:translate(-50%,-50%);z-index:18;opacity:0;transition:opacity .3s;pointer-events:none;text-align:center;color:#fff;font-size:20px;font-weight:700;text-shadow:0 0 20px #000,0 0 40px #000;white-space:pre-line;max-width:88%}
+#keyshint{position:fixed;left:50%;bottom:80px;transform:translateX(-50%);z-index:16;opacity:0;transition:opacity .3s;pointer-events:none;text-align:center;color:#ffdf5a;font-size:16px;font-weight:700;text-shadow:0 0 10px #000}
+#hintTL{position:fixed;left:18px;top:74px;z-index:14;color:#aaa;font-size:11px;text-shadow:0 0 6px #000;pointer-events:none}
+#hintBR{position:fixed;right:18px;bottom:18px;z-index:14;color:#aaa;font-size:11px;text-shadow:0 0 6px #000;pointer-events:none}</style>
 </head><body>
 <div id="app"></div><div id="cross"></div>
 <div id="hud"></div>
@@ -51,6 +55,10 @@
 <div id="stumble"></div>
 <div id="taskprog"><div class="lbl"></div><div class="bar"><div class="fill"></div></div></div>
 <div id="warning"></div>
+<div id="tutorial"></div>
+<div id="keyshint"></div>
+<div id="hintTL">💡 及时补充体力/生命</div>
+<div id="hintBR">🎯 目标：营救孩子，安全逃生</div>
 <div id="death" style="position:fixed;inset:0;background:linear-gradient(180deg,rgba(8,4,4,0) 26%,rgba(8,4,4,.5) 60%,rgba(8,4,4,.9) 100%);z-index:25;display:none;flex-direction:column;align-items:center;justify-content:flex-end;gap:12px;padding-bottom:6vh">
   <div style="color:#b71a0e;font-size:66px;font-weight:900;letter-spacing:12px;text-shadow:0 0 40px rgba(183,26,14,.6)">你 死 了</div>
   <div id="dreason" style="color:#fff;font-size:20px;max-width:62%;text-align:center;line-height:1.55"></div>
@@ -2055,9 +2063,7 @@ wallB(0.3,H,2,0,H/2,-3,LR.wallMat); wallB(0.3,H,2,0,H/2,3,LR.wallMat);      // �
 wallB(0.3,H,2,9,H/2,-3,LR.wallMat); wallB(0.3,H,2,9,H/2,3,LR.wallMat);      // 东墙(留门 z[-2,2] 接走廊2)
 // 走廊2(客厅→楼梯) x[9,15]
 ground(6,0.3,4,12,-0.15,0); deco(6,0.2,4,12,H,0);
-// 走廊2南墙开门洞(x=11)→批2路径B次楼梯
-wallB(1.25,H,0.3,9.625,H/2,2); wallB(3.25,H,0.3,13.375,H/2,2);  // 门左/右段
-wallB(1.5,H-2.2,0.3,11,H-(H-2.2)/2,2);                          // 门楣
+wallB(6,H,0.3,12,H/2,2);                          // 走廊2南墙(完整,次楼梯已移除)
 // 走廊2北墙开门洞(x=12)通往支线儿童房
 wallB(2.3,H,0.3,10.15,H/2,-2); wallB(2.3,H,0.3,13.85,H/2,-2);   // 门左/右段
 wallB(1.4,H-2.2,0.3,12,H-(H-2.2)/2,-2);                          // 门楣
@@ -2113,27 +2119,6 @@ const elG=new THREE.Group(); buildElevatorHall(elG,THREE,0,0); elG.position.set(
 warmLamp(23,F1+2.4,0); warmLamp(27,F1+2.4,0);
 deco(0.3,2.4,3,29,F1+1.2,0,mExit);
 const EXIT={x:28.5,z:0};
-// ============ 批2 路径B:次楼梯(走廊2南门 x=11 → 往南下楼 → 一楼侧大堂 → 侧门②) ============
-const SN2=9, SR2=(0-F1)/SN2, SD=5/SN2;           // 9级,沿+z(南)下,每级降SR2进深SD
-for(let i=0;i<SN2;i++){ const topY=-(i+1)*SR2; const z=2.1+i*SD;
-  ground(3,0.3,SD+0.02,11,topY-0.15,z,mStep); }  // 次楼梯台阶(沿z下,无缝接走廊2南门)
-wallB(0.3,H,5.5,9.3,H/2-1.5,4.75); wallB(0.3,H,5.5,12.7,H/2-1.5,4.75);  // 次楼梯东西墙
-// 一楼侧大堂(次楼梯落点,y=F1) + 侧门②
-ground(6,0.3,6,11,F1-0.15,9.8,mStep);            // 落地大堂地板
-wallB(0.3,H,6,14,F1+H/2,9.8);                                   // 侧大堂东墙(完整)
-// 侧大堂西墙开门洞(z=9.8)→路径C室外逃生梯/平台→出口③
-wallB(0.3,H,2.25,8,F1+H/2,7.925); wallB(0.3,H,2.25,8,F1+H/2,11.675);  // 门前/后段
-wallB(0.3,H-2.2,1.5,8,F1+H-(H-2.2)/2,9.8);                     // 门楣
-ground(5,0.3,4,5.5,F1-0.15,9.8,mStep);                         // 西平台(接侧大堂西门,室外逃生梯落地)
-wallB(5,H,0.3,5.5,F1+H/2,7.8); wallB(5,H,0.3,5.5,F1+H/2,11.8); // 平台南/北墙
-warmLamp(5.5,F1+2.2,9.8);
-deco(0.3,2.4,3,3,F1+1.2,9.8,mExit);                            // 出口③(绿门,西端=室外)
-const EXIT3={x:3.7,z:9.8};
-wallB(6,H,0.3,11,F1+H/2,12.8);                   // 大堂南墙(侧门在此)
-warmLamp(11,F1+2.2,9.5);
-deco(2.2,2.4,0.3,11,F1+1.2,12.8,mExit);          // 侧门②(绿色出口)
-const EXIT2={x:11,z:12};
-
 // ============ 第一人称 + 射线地面跟随 + 墙碰撞 ============
 const EYE=1.6;
 let player=new THREE.Vector3(-9,EYE,0);
@@ -2150,10 +2135,51 @@ let taskTargets=[];  // 任务交互目标(燃气阀/孩子NPC)
 let stumbling=false,stumbleTimer=0,stumbleCooldown=0;
 // ---- 任务系统 ----
 let tasksCompleted={gasOff:false,firstAid:false,childRescued:false};
+let tutorialStep=0,playerHasMoved=false,pickupTutorialDone=false,roomTutorialDone=false;
+let childRoom='儿童房';  // 当前孩子所在房间名(每局随机)
 let pickupAction=0;  // 拾取动作计时器(>0=正在执行动作,不能移动)
 let taskTarget=null;  // 当前正在交互的任务对象引用
 // ---- 安全区系统 ----
 let safeZones=[];     // {x,z,r,isReal,group} 真正安全区+伪安全区
+// ===== 楼内合法刷新区域(矩形边界,用于孩子随机生成) =====
+// 坐标系:x东西轴(西负东正),z南北轴(北负南正)。所有房间+走廊均划定合法区域。
+// 矩形的实际生效范围向内缩0.6米,避开墙体/障碍物内部。
+const BUILDING_ZONES=[
+  // 二楼(x范围 -13~28, floorY=0)
+  {name:'卧室',x1:-12.4,x2:-5.6,z1:-3.4,z2:3.4,floorY:0},
+  {name:'卫生间',x1:-10.3,x2:-7.7,z1:-6.5,z2:-4.5,floorY:0},
+  {name:'餐厅',x1:-12.4,x2:-5.6,z1:4.6,z2:10,floorY:0},
+  {name:'走廊1',x1:-5.5,x2:0,z1:-1.4,z2:1.4,floorY:0},
+  {name:'储藏室',x1:-4.3,x2:-0.7,z1:-5.5,z2:-3.5,floorY:0},
+  {name:'客厅',x1:0.6,x2:8.4,z1:-3.4,z2:3.4,floorY:0},
+  {name:'阳台',x1:1.5,x2:7.5,z1:4.6,z2:9.0,floorY:0},
+  {name:'厨房',x1:2.5,x2:6.5,z1:-7.0,z2:-5.0,floorY:0},
+  {name:'走廊2',x1:9.5,x2:14,z1:-1.4,z2:1.4,floorY:0},
+  {name:'儿童房',x1:9.5,x2:14.5,z1:-7.5,z2:-3.5,floorY:0},
+  // 一楼(x范围 19~29, floorY=-3.3)
+  {name:'一楼走廊',x1:19.5,x2:28,z1:-1.4,z2:1.4,floorY:-3.3},
+  {name:'书房',x1:22,x2:27,z1:3.7,z2:7.0,floorY:-3.3},
+  {name:'电梯厅',x1:22,x2:27,z1:-6.5,z2:-5.0,floorY:-3.3},
+];
+// 判断坐标是否在楼内合法刷新区域(自动匹配楼层)
+function isInsideBuilding(x,z,floorY){
+  for(const zz of BUILDING_ZONES){
+    if(Math.abs(floorY-zz.floorY)<0.5 && x>=zz.x1 && x<=zz.x2 && z>=zz.z1 && z<=zz.z2) return zz;
+  }
+  return null;
+}
+// 随机生成孩子位置(拒绝采样:随机坐标→判定合法→不合法则重试)
+function spawnChildPos(){
+  for(let retry=0;retry<100;retry++){
+    const fy=Math.random()<0.8?0:-3.3;  // 80%概率在二楼,20%在一楼
+    const x=-13+Math.random()*42;         // x∈[-13,29]
+    const z=-8+Math.random()*18;          // z∈[-8,10]
+    const zone=isInsideBuilding(x,z,fy);
+    if(zone){return{x:x,y:fy+0.07,z:z,room:zone.name};}
+  }
+  // 兜底:落在儿童房
+  return{x:12,y:0.07,z:-5.2,room:'儿童房'};
+}
 // ---- 原有 ----
 let phase='wake', shake=0, quakeT=0, hazards=[], sinceSpawn=0;
 // 过场场景状态:死亡黑盒/室外结局靠"切场景"实现——dead/won 时相机切到地下深处的展台/室外楼,
@@ -2231,6 +2257,8 @@ function dealDamage(amount){if(phase==='dead')return;hp=Math.max(0,hp-amount);up
 function getSafeZoneType(){for(const z of safeZones){if(Math.hypot(player.x-z.x,player.z-z.z)<z.r)return z.isReal?'real':'fake';}return'none';}
 function calcHazardDamage(){const zone=getSafeZoneType();if(zone==='real'&&crouching)return 0;if(zone==='fake'&&crouching)return randDmg(35,45);if(crouching)return 18;return randDmg(30,40);}
 function showPickupMsg(txt){O('pickupmsg').textContent=txt;O('pickupmsg').style.opacity='1';pickupMsgTimer=1.5;}
+function showTutorial(msg){O('tutorial').textContent=msg;O('tutorial').style.opacity='1';}
+function hideTutorial(){O('tutorial').style.opacity='0';}
 // ===== 拾取物生成 =====
 function spawnPickups(){pickups.forEach(p=>scene.remove(p));pickups=[];
   const locs=[{x:-9,z:-2.8,y:0.35,t:'medkit',d:'医疗包'},{x:-2,z:-1,y:0.35,t:'energy',d:'能量饮料'},{x:3,z:-2.8,y:0.35,t:'medkit',d:'医疗包'},{x:7,z:1.8,y:0.35,t:'energy',d:'能量饮料'},{x:14,z:0,y:0.35,t:'medkit',d:'医疗包'},{x:22,z:1.8,y:F1+0.35,t:'medkit',d:'医疗包'},{x:27,z:-1.2,y:F1+0.35,t:'energy',d:'能量饮料'},
@@ -2243,19 +2271,20 @@ function spawnPickups(){pickups.forEach(p=>scene.remove(p));pickups=[];
     g.userData={type:l.t,desc:l.d,baseY:g.position.y,phase:Math.random()*Math.PI*2};scene.add(g);pickups.push(g);});
   // 厨房燃气阀任务标记(不可拾取,用E交互)
   if(!taskTargets)taskTargets=[];
-  taskTargets.forEach(t=>{if(t.group)scene.remove(t.group);});taskTargets=[];
+  taskTargets.forEach(t=>scene.remove(t));taskTargets=[];
   const gasValve={x:4.5+1.0,z:-6.0-1.72,worldY:0.55};
   const gvMark=new THREE.Group();gvMark.position.set(gasValve.x,gasValve.worldY,gasValve.z);
   const gvBox=new THREE.Mesh(new THREE.BoxGeometry(0.15,0.15,0.15),new THREE.MeshStandardMaterial({color:0xff4400,emissive:0xff4400,emissiveIntensity:.7,roughness:.3,metalness:.3}));gvBox.castShadow=true;gvMark.add(gvBox);
   gvMark.userData={type:'gasValve',desc:'关闭燃气阀',baseY:gasValve.worldY,phase:0};scene.add(gvMark);taskTargets.push(gvMark);
-  // 儿童房孩子NPC(几何体拼的小人,交互点)
-  const kid=new THREE.Group();kid.position.set(12,0.07,-5.2);  // 儿童房床边地上
+  // 孩子NPC(几何体拼的小人,交互点) —— 拒绝采样保证落在楼内合法区域
+  const cPos=spawnChildPos();childRoom=cPos.room;
+  const kid=new THREE.Group();kid.position.set(cPos.x,cPos.y,cPos.z);
   const head=new THREE.Mesh(new THREE.SphereGeometry(.22,16,12),new THREE.MeshStandardMaterial({color:0xf5d5b8,roughness:.7}));head.position.y=.92;kid.add(head);
   const body=new THREE.Mesh(new THREE.BoxGeometry(.32,.35,.22),new THREE.MeshStandardMaterial({color:0x5b8def,roughness:.6}));body.position.y=.55;kid.add(body);
   for(const s of[-1,1]){const arm=new THREE.Mesh(new THREE.CylinderGeometry(.05,.055,.3,8),new THREE.MeshStandardMaterial({color:0xf5d5b8,roughness:.7}));arm.position.set(s*.2,.62,0);arm.rotation.z=s*.3;kid.add(arm);}
   for(const s of[-1,1]){const leg=new THREE.Mesh(new THREE.CylinderGeometry(.07,.065,.35,8),new THREE.MeshStandardMaterial({color:0x3a5a9f,roughness:.7}));leg.position.set(s*.1,.2,0);leg.rotation.x=.4;kid.add(leg);}
   const glow=new THREE.Mesh(new THREE.RingGeometry(.5,.6,32),new THREE.MeshBasicMaterial({color:0xffdd88,transparent:true,opacity:.5,side:THREE.DoubleSide,blending:THREE.AdditiveBlending,depthWrite:false}));glow.rotation.x=-Math.PI/2;glow.position.y=.02;kid.add(glow);
-  kid.userData={type:'child',desc:'带上孩子',baseY:0.07,phase:0};kid.castShadow=true;scene.add(kid);taskTargets.push(kid);}
+  kid.userData={type:'child',desc:'带上孩子',baseY:cPos.y,phase:0};kid.castShadow=true;scene.add(kid);taskTargets.push(kid);}
 // ===== 原有危险物系统 =====
 const mHaz=new THREE.MeshStandardMaterial({color:0xb0aca4,roughness:1});
 function spawnHazard(){const effEye=crouching?0.7:EYE;const hx=player.x+(Math.random()-0.5)*4,hz=player.z+(Math.random()-0.5)*3;
@@ -2301,14 +2330,14 @@ function showReport(){
   rows.push(['🧯 关闭厨房燃气阀',tasksCompleted.gasOff?'已关闭':'未关闭',tasksCompleted.gasOff]);
   rows.push(['💊 带上急救包',tasksCompleted.firstAid?'已带上':'未带上',tasksCompleted.firstAid]);
   rows.push(['👶 救出孩子',tasksCompleted.childRescued?'已救出':'未救出',tasksCompleted.childRescued]);
-  O('rrows').innerHTML=rows.map(r=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 13px;background:rgba(255,255,255,.04);border-left:3px solid ${r[2]?'#2fae5e':'#d4321e'};border-radius:6px"><span>${r[0]}</span><b style="color:${r[2]?'#9be37a':'#ff8a7a'}">${r[1]}</b></div>`).join('');
+  O('rrows').innerHTML=rows.map(r=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 13px;background:${r[2]?'linear-gradient(90deg,rgba(47,174,94,.35),rgba(47,174,94,.15))':'rgba(212,50,30,.08)'};border-left:4px solid ${r[2]?'#2fae5e':'#d4321e'};border-radius:6px"><span>${r[0]}</span><b style="color:${r[2]?'#4dff88':'#ff8a7a'}">${r[1]}</b></div>`).join('');
   O('rfoot').innerHTML='📌 <b style="color:#cdb">「趴下·遮挡·稳住」</b>(Drop, Cover, Hold On) 是国际通用地震守则。地震前先关燃气阀、带上急救包、保护孩子——少做一样都可能致命。&nbsp;—&nbsp;据 USGS / FEMA';
   O('report').style.display='flex';
 }
 O('rretry').onclick=()=>{startGame();renderer.domElement.requestPointerLock&&renderer.domElement.requestPointerLock();};
-function startGame(){console.log('startGame called');phase='wake';won=false;quakeT=0;shake=0;clearHazards();player.copy(startPos);yaw=-Math.PI/2;pitch=-0.05;resetStats();coverHeld=0;mainShockDone=false;safeGroup.visible=false;O('report').style.display='none';
-  hp=maxHp;updateHpBar();stamina=maxStamina;updateStBar();crouching=false;sprinting=false;stumbling=false;stumbleTimer=0;stumbleCooldown=0;pickupAction=0;taskTarget=null;O('crouchind').style.opacity='0';O('hpwrap').style.display='block';O('stwrap').style.display='block';O('stumble').style.opacity='0';O('taskprog').style.opacity='0';O('warning').style.opacity='0';
-  console.log('resetting tasks');tasksCompleted={gasOff:false,firstAid:false,childRescued:false};console.log('calling spawnSafeZones');spawnSafeZones();console.log('calling spawnPickups');spawnPickups();console.log('startGame done');
+function startGame(){phase='wake';won=false;quakeT=0;shake=0;clearHazards();player.copy(startPos);yaw=-Math.PI/2;pitch=-0.05;resetStats();coverHeld=0;mainShockDone=false;safeGroup.visible=false;O('report').style.display='none';
+  hp=maxHp;updateHpBar();stamina=maxStamina;updateStBar();crouching=false;sprinting=false;stumbling=false;stumbleTimer=0;stumbleCooldown=0;pickupAction=0;taskTarget=null;tutorialStep=0;playerHasMoved=false;pickupTutorialDone=false;roomTutorialDone=false;O('crouchind').style.opacity='0';O('hpwrap').style.display='block';O('stwrap').style.display='block';O('stumble').style.opacity='0';O('taskprog').style.opacity='0';O('warning').style.opacity='0';O('tutorial').style.opacity='0';O('keyshint').style.opacity='0';
+  tasksCompleted={gasOff:false,firstAid:false,childRescued:false};spawnSafeZones();spawnPickups();
   if(deathFx){deathFx.dispose();deathFx=null;}                      // 清死亡展台(释放显存)
   if(exitFx){scene.remove(exitFx.root);exitFx=null;}               // 清室外结局
   if(bgBak!==null){scene.background=bgBak;bgBak=null;}             // 还原正常游戏天空
@@ -2336,15 +2365,14 @@ function stepGame(dt){
   O('crouchind').style.opacity=crouching?'1':'0';
   // 移动(含冲刺/体力/蹲下减速) —— 摔倒或执行动作时禁止移动
   const canAct=!stumbling&&pickupAction<=0;
-  if(canAct&&(phase==='quake'||phase==='wake')&&(keys['KeyW']||keys['KeyA']||keys['KeyS']||keys['KeyD'])){sprinting=(keys['ShiftLeft']||keys['ShiftRight'])&&stamina>0;let sp=3.4*dt;if(crouching)sp*=.6;if(sprinting)sp*=1.6;const e=new THREE.Euler(0,yaw,0,'YXZ');const fwd=new THREE.Vector3(0,0,-1).applyEuler(e),rgt=new THREE.Vector3(1,0,0).applyEuler(e);
+  if(canAct&&(phase==='quake'||phase==='wake')&&(keys['KeyW']||keys['KeyA']||keys['KeyS']||keys['KeyD'])){sprinting=(keys['ShiftLeft']||keys['ShiftRight'])&&stamina>0;let sp=3.4*dt;if(crouching)sp*=.6;if(sprinting)sp*=1.6;if(stamina<=0)sp*=.3;const e=new THREE.Euler(0,yaw,0,'YXZ');const fwd=new THREE.Vector3(0,0,-1).applyEuler(e),rgt=new THREE.Vector3(1,0,0).applyEuler(e);
     let mv=new THREE.Vector3();if(keys['KeyW'])mv.add(fwd);if(keys['KeyS'])mv.sub(fwd);if(keys['KeyA'])mv.sub(rgt);if(keys['KeyD'])mv.add(rgt);
     if(mv.lengthSq()>0){mv.normalize().multiplyScalar(sp);
       const tx=new THREE.Vector3(player.x+mv.x,player.y,player.z);if(canMove(player,tx))player.x=tx.x;
-      const tz=new THREE.Vector3(player.x,player.y,player.z+mv.z);if(canMove(player,tz))player.z=tz.z;}
-  // 体力消耗/回复
+      const tz=new THREE.Vector3(player.x,player.y,player.z+mv.z);if(canMove(player,tz))player.z=tz.z;}}
+  // 体力消耗/回复(独立于移动,每帧都执行)
   const isMoving=keys['KeyW']||keys['KeyA']||keys['KeyS']||keys['KeyD'];
-  if(sprinting&&isMoving){stamina=Math.max(0,stamina-dt*28);updateStBar();}else{const regen=crouching?16:12;stamina=Math.min(maxStamina,stamina+dt*regen);updateStBar();}
-  }
+  if(sprinting&&isMoving){stamina=Math.max(0,stamina-dt*28);}else if(isMoving){stamina=Math.max(0,stamina-dt*5);}else{const regen=crouching?4:2;stamina=Math.min(maxStamina,stamina+dt*regen);}updateStBar();
   // 地面跟随(蹲下时降低视线高度)
   const effectiveEye=crouching?0.7:EYE;
   downRay.set(new THREE.Vector3(player.x,player.y+1.8,player.z),new THREE.Vector3(0,-1,0));downRay.far=12;
@@ -2360,7 +2388,7 @@ function stepGame(dt){
   if(stumbling){stumbleTimer-=dt;if(stumbleTimer<=0){stumbling=false;stumbleCooldown=2.0;}}
   if(stumbleCooldown>0)stumbleCooldown-=dt;
   // 拾取/使用动作延迟(1.5秒不能移动)
-  if(pickupAction>0){pickupAction-=dt;const pct=(1-pickupAction/1.5)*100;O('taskprog').style.opacity='1';O('taskprog').querySelector('.fill').style.width=pct+'%';if(pickupAction<=0){O('taskprog').style.opacity='0';if(taskTarget){const t=taskTarget;if(t==='gasValve'){tasksCompleted.gasOff=true;showPickupMsg('燃气阀已关闭!');const gv=taskTargets.find(k=>k.userData.type==='gasValve');if(gv){scene.remove(gv);taskTargets=taskTargets.filter(k=>k!==gv);}}else if(t==='child'){tasksCompleted.childRescued=true;const kid=taskTargets.find(k=>k.userData.type==='child');if(kid){scene.remove(kid);taskTargets=taskTargets.filter(k=>k!==kid);}showPickupMsg('你带上了孩子!');}else if(t&&t.userData){const ut=t.userData.type;if(ut==='medkit'){hp=Math.min(maxHp,hp+30);updateHpBar();showPickupMsg('+30 生命值');}else if(ut==='energy'){stamina=Math.min(maxStamina,stamina+40);updateStBar();showPickupMsg('+40 体力');}else if(ut==='firstAid'){tasksCompleted.firstAid=true;hp=Math.min(maxHp,hp+30);updateHpBar();showPickupMsg('急救包+30 生命值 (任务完成)');}scene.remove(t);pickups=pickups.filter(p=>p!==t);}}taskTarget=null;}}
+  if(pickupAction>0){pickupAction-=dt;const pct=(1-pickupAction/1.5)*100;O('taskprog').style.opacity='1';O('taskprog').querySelector('.fill').style.width=pct+'%';if(pickupAction<=0){O('taskprog').querySelector('.fill').style.width='100%';setTimeout(()=>{O('taskprog').style.opacity='0';},600);if(taskTarget){const t=taskTarget;if(t==='gasValve'){tasksCompleted.gasOff=true;showPickupMsg('燃气阀已关闭!');const gv=taskTargets.find(k=>k.userData.type==='gasValve');if(gv){scene.remove(gv);taskTargets=taskTargets.filter(k=>k!==gv);}}else if(t==='child'){tasksCompleted.childRescued=true;const kid=taskTargets.find(k=>k.userData.type==='child');if(kid){scene.remove(kid);taskTargets=taskTargets.filter(k=>k!==kid);}showPickupMsg('你带上了孩子!');}else if(t&&t.userData){const ut=t.userData.type;if(ut==='medkit'){hp=Math.min(maxHp,hp+30);updateHpBar();showPickupMsg('+30 生命值');}else if(ut==='energy'){stamina=Math.min(maxStamina,stamina+40);updateStBar();showPickupMsg('+40 体力');}else if(ut==='firstAid'){tasksCompleted.firstAid=true;hp=Math.min(maxHp,hp+30);updateHpBar();showPickupMsg('急救包+30 生命值 (任务完成)');}scene.remove(t);pickups=pickups.filter(p=>p!==t);}}taskTarget=null;}}
   // 安全区可见性:主震全部显示,余震全隐藏;伪安全区蹲下警告
   if(phase==='quake'&&!won){const mainQ=quakeT<MAIN_SHOCK;safeZones.forEach(z=>{if(z.group)z.group.visible=mainQ;if(mainQ&&z.group&&z.isReal&&z.group.children[0])z.group.children[0].material.opacity=0.35+0.3*Math.sin(performance.now()*0.006);});if(crouching){const zone=getSafeZoneType();if(zone==='fake')O('warning').style.opacity='1';else O('warning').style.opacity='0';}else O('warning').style.opacity='0';}
   if(phase==='dead'&&deathFx){          // 死亡:相机切到地下死亡展台,俯视聚光下被压的人
@@ -2386,6 +2414,32 @@ function stepGame(dt){
   if(pickupCooldown>0)pickupCooldown-=dt;
   if(nearP&&pickupAction<=0){O('pickup').textContent='按 E 拾取 '+nearP.userData.desc;O('pickup').style.opacity='1';}else if(nearT&&pickupAction<=0){O('pickup').textContent='按 E '+nearT.userData.desc;O('pickup').style.opacity='1';}else{O('pickup').style.opacity='0';}
   if(pickupMsgTimer>0){pickupMsgTimer-=dt;if(pickupMsgTimer<=0)O('pickupmsg').style.opacity='0';}
+  // ===== 新手教程系统 =====
+  const isMovingT=keys['KeyW']||keys['KeyA']||keys['KeyS']||keys['KeyD'];
+  if(tutorialStep===0&&phase==='quake'&&!playerHasMoved){
+    if(isMovingT){playerHasMoved=true;hideTutorial();O('keyshint').style.opacity='0';setObj('🚨 地震!别往外冲——退到床边发光圈蹲下,护住头颈!');}
+    else{setObj('');showTutorial('地震突发！\n请操控角色移动，逃离危险区域');O('keyshint').innerHTML='<b>W A S D</b> 移动';O('keyshint').style.opacity='1';}
+  }
+  if(playerHasMoved&&!pickupTutorialDone){
+    if(nearP){showTutorial(nearP.userData.t==='medkit'?'💊 医疗包 → 恢复生命值':'💧 能量饮料 → 恢复体力值');}
+    if(keys['KeyE']&&nearP&&pickupAction>0){pickupTutorialDone=true;hideTutorial();}
+  }
+  if(pickupTutorialDone&&!roomTutorialDone){
+    const kidObj=taskTargets.find(k=>k.userData.type==='child');
+    const nearChild=kidObj&&Math.hypot(player.x-kidObj.position.x,player.z-kidObj.position.z)<5;
+    if(nearChild||player.x>10){
+      showTutorial('楼房内「'+childRoom+'」有被困孩子\n请找到并救助他们！靠近后按E带走');
+      roomTutorialDone=true;setTimeout(hideTutorial,5000);
+    }
+  }
+  if(tasksCompleted.childRescued&&tutorialStep<5){
+    tutorialStep=5;showTutorial('⚠️ 注意：优先营救被困孩子\n同时保证自身安全！全部营救完毕即可通关！');
+    setTimeout(hideTutorial,3000);
+  }
+  if(tutorialStep===5&&!tasksCompleted.gasOff&&!tasksCompleted.firstAid&&player.x>4&&player.x<16){
+    showTutorial('💡 提示：厨房可关闭燃气阀\n浴室可拿急救包，多完成加分！');setTimeout(hideTutorial,3000);
+  }
+  O('hintTL').textContent=(hp<40||stamina<40)?'⚠ 状态不足，寻找道具补给':'💡 及时补充体力/生命';
   // 地震:① 主震(必须就近躲避护头) → ② 余震逃生(往东撤离,躲坠落物)
   if(phase==='quake'&&!won){quakeT+=dt;
     if(quakeT<MAIN_SHOCK){                                 // —— ① 主震:Drop, Cover, Hold On ——
@@ -2419,7 +2473,7 @@ function stepGame(dt){
     else if(nearElev&&pickupAction<=0){setObj('⚠ 按 E 乘坐电梯 (地震时坐电梯必死!)');}
     else if(player.x>16&&!nearElev){stats.elevatorAvoided=true;setObj('✓ 没坐电梯,明智!地震时电梯随时断电卡死——永远走楼梯下去。');} // 上了楼梯=避开了电梯
   }
-  if(!won&&(Math.hypot(player.x-EXIT.x,player.z-EXIT.z)<1.8||Math.hypot(player.x-EXIT2.x,player.z-EXIT2.z)<1.8)){won=true;  // 多出口:正门①/侧门②(阳台非出口,悬挑结构最危险)
+  if(!won&&Math.hypot(player.x-EXIT.x,player.z-EXIT.z)<1.8){won=true;  // 唯一出口:正门(一楼东端)
     bgBak=scene.background;fogBak=scene.fog;scene.fog=null;          // 关雾,别让室内浓雾染暗明亮室外
     exitFx=buildExterior(scene,THREE,0,-120,140);cinemaT=0;          // 室外楼建在地下远处独立区,相机切过去
     renderer.toneMappingExposure=1.55;                              // 室外是明亮白天,临时调高曝光(重开还原1.08)
