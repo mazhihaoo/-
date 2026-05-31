@@ -27,8 +27,35 @@
 #tutorial{position:fixed;left:50%;top:40%;transform:translate(-50%,-50%);z-index:18;opacity:0;transition:opacity .3s;pointer-events:none;text-align:center;color:#fff;font-size:20px;font-weight:700;text-shadow:0 0 20px #000,0 0 40px #000;white-space:pre-line;max-width:88%}
 #keyshint{position:fixed;left:50%;bottom:80px;transform:translateX(-50%);z-index:16;opacity:0;transition:opacity .3s;pointer-events:none;text-align:center;color:#ffdf5a;font-size:16px;font-weight:700;text-shadow:0 0 10px #000}
 #hintTL{position:fixed;left:18px;top:74px;z-index:14;color:#aaa;font-size:11px;text-shadow:0 0 6px #000;pointer-events:none}
-#hintBR{position:fixed;right:18px;bottom:18px;z-index:14;color:#aaa;font-size:11px;text-shadow:0 0 6px #000;pointer-events:none}</style>
+#hintBR{position:fixed;right:18px;bottom:18px;z-index:14;color:#aaa;font-size:11px;text-shadow:0 0 6px #000;pointer-events:none}
+/* ===== 手机触屏控件 ===== */
+.mctrl{display:none;touch-action:none;user-select:none;-webkit-user-select:none}
+body.mobile .mctrl{display:block}
+body.mobile #cross,body.mobile #hintTL,body.mobile #hintBR,body.mobile #info{display:none}
+body.mobile #hud{top:4%;font-size:15px}
+#joy{position:fixed;left:24px;bottom:110px;width:160px;height:160px;z-index:40}
+#joy .base{width:160px;height:160px;border-radius:50%;background:rgba(255,255,255,.08);border:2px solid rgba(255,255,255,.18);position:absolute;left:0;top:0}
+#joy .thumb{width:64px;height:64px;border-radius:50%;background:rgba(255,255,255,.22);border:2px solid rgba(255,255,255,.35);position:absolute;left:48px;top:48px;transition:none}
+#camzone{position:fixed;right:0;top:0;width:50%;height:100%;z-index:39;touch-action:none}
+#actbtns{position:fixed;right:18px;bottom:60px;z-index:41;display:flex;flex-direction:column;gap:14px;align-items:center}
+#actbtns button{width:70px;height:70px;border-radius:50%;border:2px solid rgba(255,255,255,.3);background:rgba(255,255,255,.1);color:#fff;font-size:22px;font-weight:700;touch-action:manipulation;cursor:pointer;-webkit-tap-highlight-color:transparent}
+#actbtns button:active{background:rgba(255,255,255,.3)}
+#btnE{background:rgba(255,200,60,.2)!important;border-color:rgba(255,200,60,.5)!important;width:78px!important;height:78px!important;font-size:28px!important}
+#btnE:active{background:rgba(255,200,60,.45)!important}
+#btnSprint.active,#btnCrouch.active{background:rgba(100,200,255,.35)!important;border-color:rgba(100,200,255,.6)!important}
+body.mobile #start p{font-size:13px;line-height:1.6;max-width:92%}
+body.mobile #start button{padding:18px 50px;font-size:22px}
+body.mobile #obj{font-size:16px;top:5%}
+body.mobile #pickup{bottom:100px;font-size:15px}
+@media(orientation:landscape){#joy{left:18px;bottom:50px;width:130px;height:130px}#joy .base{width:130px;height:130px}#joy .thumb{width:52px;height:52px;left:39px;top:39px}#actbtns{right:12px;bottom:36px;gap:8px}#actbtns button{width:56px;height:56px;font-size:18px}#btnE{width:64px!important;height:64px!important;font-size:24px!important}}</style>
 </head><body>
+<div class="mctrl" id="joy"><div class="base"></div><div class="thumb"></div></div>
+<div class="mctrl" id="camzone"></div>
+<div class="mctrl" id="actbtns">
+  <button id="btnE">🖐</button>
+  <button id="btnSprint">🏃</button>
+  <button id="btnCrouch">👇</button>
+</div>
 <div id="app"></div><div id="cross"></div>
 <div id="hud"></div>
 <div id="info"></div>
@@ -72,6 +99,42 @@
 <script type="module">
 import * as THREE from 'three';
 import { buildKitchenRoom, buildBathroomRoom, buildBalconyRoom, buildDiningRoom, buildStudyRoom, buildKidsRoom, buildStorageRoom, buildCorridorRoom, buildElevatorHall, buildNeighborHome } from './rooms.js';
+// ===== 手机触屏控制 =====
+const isMobile=/Mobi|Android|iPhone|iPad/i.test(navigator.userAgent)||('ontouchstart' in window&&innerWidth<1024);
+if(isMobile){document.body.classList.add('mobile');window.locked=true;
+document.querySelector('#start p').innerHTML='<b style="color:#cdb">凌晨 4:12，一场地震把你从睡梦中震醒。</b><br>从二楼卧室逃出单元楼，活下去——把救命的本能，刻进身体。<br><br><b style="color:#9c6">⬅ 左摇杆</b> 移动　·　<b style="color:#9c6">➡ 右滑</b> 环顾四周<br><b style="color:#ff7">🏃</b> 冲刺切换　·　<b style="color:#ff7">👇</b> 蹲下切换　·　<b style="color:#ff7">🖐</b> 拾取/交互<br><br>① 主震来时<b style="color:#ff7">别往外冲</b>——退到 <b style="color:#7CFF9B">绿色光圈</b>里蹲下护头，撑过去<br>② <b style="color:#ff7">红圈</b> = 头顶要塌，别停快穿过；<b style="color:#ff7">亮着的电梯别坐</b><br>③ 穿过客厅 → 下楼梯 → 冲出 <b style="color:#7CFF9B">绿色单元门</b> = 生还<br>逃出后会给你打分 <b style="color:#7CFF9B">A+~D</b>，看你能不能把命练成本能';}
+const mKeys={fw:false,bk:false,lt:false,rt:false};let sprintLatched=false; // 摇杆方向/冲刺锁存
+// 摇杆
+const joy=document.getElementById('joy'),joyThumb=joy.querySelector('.thumb');
+let joyId=null,joyCX=0,joyCY=0,joyR=80;
+function joyReset(){mKeys.fw=mKeys.bk=mKeys.lt=mKeys.rt=keys['KeyW']=keys['KeyS']=keys['KeyA']=keys['KeyD']=false;joyThumb.style.left='48px';joyThumb.style.top='48px';}
+if(isMobile){
+  joy.addEventListener('touchstart',e=>{e.preventDefault();const t=e.changedTouches[0];joyId=t.identifier;const r=joy.getBoundingClientRect();joyCX=r.left+r.width/2;joyCY=r.top+r.height/2;joyR=r.width/2;},false);
+  joy.addEventListener('touchmove',e=>{e.preventDefault();for(let i=0;i<e.changedTouches.length;i++){const t=e.changedTouches[i];if(t.identifier!==joyId)continue;let dx=t.clientX-joyCX,dy=t.clientY-joyCY;const dist=Math.hypot(dx,dy),maxD=joyR-12;if(dist>maxD){dx*=maxD/dist;dy*=maxD/dist;}joyThumb.style.left=(joyR-32+dx)+'px';joyThumb.style.top=(joyR-32+dy)+'px';const thresh=joyR*0.25;mKeys.fw=dy<-thresh;mKeys.bk=dy>thresh;mKeys.lt=dx<-thresh;mKeys.rt=dx>thresh;const autoSprint=dist>joyR*0.7;keys['KeyW']=mKeys.fw;keys['KeyS']=mKeys.bk;keys['KeyA']=mKeys.lt;keys['KeyD']=mKeys.rt;if(autoSprint&&mKeys.fw&&!mKeys.bk&&!mKeys.lt&&!mKeys.rt)keys['ShiftLeft']=true;else if(!autoSprint&&!sprintLatched)keys['ShiftLeft']=false;}},false);
+  joy.addEventListener('touchend',e=>{e.preventDefault();for(let i=0;i<e.changedTouches.length;i++){if(e.changedTouches[i].identifier===joyId){joyReset();joyId=null;}}},false);
+  joy.addEventListener('touchcancel',()=>{joyReset();joyId=null;},false);
+}
+// 右半屏拖拽 = 视角控制
+const camZone=document.getElementById('camzone');
+let camTouchId=null,lastCamX=0,lastCamY=0;
+if(isMobile){
+  camZone.addEventListener('touchstart',e=>{const t=e.changedTouches[0];if(t.target===camZone||camZone.contains(t.target)){camTouchId=t.identifier;lastCamX=t.clientX;lastCamY=t.clientY;}},false);
+  camZone.addEventListener('touchmove',e=>{e.preventDefault();for(let i=0;i<e.changedTouches.length;i++){const t=e.changedTouches[i];if(t.identifier!==camTouchId)continue;const dx=t.clientX-lastCamX,dy=t.clientY-lastCamY;yaw-=dx*0.003;pitch-=dy*0.003;pitch=Math.max(-1.3,Math.min(1.3,pitch));lastCamX=t.clientX;lastCamY=t.clientY;}},{passive:false});
+  camZone.addEventListener('touchend',e=>{for(let i=0;i<e.changedTouches.length;i++){if(e.changedTouches[i].identifier===camTouchId)camTouchId=null;}},false);
+}
+// 动作按钮: E=拾取, Sprint=冲刺切换, Crouch=蹲下切换
+const btnE=document.getElementById('btnE'),btnSprint=document.getElementById('btnSprint'),btnCrouch=document.getElementById('btnCrouch');
+if(isMobile){
+  btnE.addEventListener('pointerdown',e=>{e.preventDefault();keys['KeyE']=true;btnE.style.background='rgba(255,200,60,.45)';});
+  btnE.addEventListener('pointerup',e=>{e.preventDefault();keys['KeyE']=false;btnE.style.background='';});
+  btnE.addEventListener('pointerleave',e=>{keys['KeyE']=false;btnE.style.background='';});
+  btnE.addEventListener('pointercancel',e=>{keys['KeyE']=false;btnE.style.background='';});
+  btnSprint.addEventListener('pointerdown',e=>{e.preventDefault();sprintLatched=!sprintLatched;if(sprintLatched){keys['ShiftLeft']=true;btnSprint.classList.add('active');}else{keys['ShiftLeft']=false;btnSprint.classList.remove('active');}});
+  btnCrouch.addEventListener('pointerdown',e=>{e.preventDefault();keys['ControlLeft']=true;btnCrouch.classList.add('active');setTimeout(()=>{keys['ControlLeft']=false;btnCrouch.classList.remove('active');},80);});
+}
+// 窗口大小变化时更新摇杆半径
+if(isMobile){addEventListener('resize',()=>{const r=joy.getBoundingClientRect();joyR=r.width/2;});}
+// ===== 手机触屏控制结束 =====
 const app=document.getElementById('app');
 const renderer=new THREE.WebGLRenderer({antialias:true});renderer.setSize(innerWidth,innerHeight);renderer.setPixelRatio(Math.min(devicePixelRatio,2));
 renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.08;app.appendChild(renderer.domElement);
@@ -2335,7 +2398,7 @@ function showReport(){
   O('rfoot').innerHTML='📌 <b style="color:#cdb">「趴下·遮挡·稳住」</b>(Drop, Cover, Hold On) 是国际通用地震守则。地震前先关燃气阀、带上急救包、保护孩子——少做一样都可能致命。&nbsp;—&nbsp;据 USGS / FEMA';
   O('report').style.display='flex';
 }
-O('rretry').onclick=()=>{startGame();renderer.domElement.requestPointerLock&&renderer.domElement.requestPointerLock();};
+O('rretry').onclick=()=>{startGame();if(!isMobile)renderer.domElement.requestPointerLock&&renderer.domElement.requestPointerLock();};
 function startGame(){phase='wake';won=false;quakeT=0;shake=0;clearHazards();player.copy(startPos);yaw=-Math.PI/2;pitch=-0.05;resetStats();coverHeld=0;mainShockDone=false;safeGroup.visible=false;O('report').style.display='none';
   hp=maxHp;updateHpBar();stamina=maxStamina;updateStBar();crouching=false;sprinting=false;stumbling=false;stumbleTimer=0;stumbleCooldown=0;pickupAction=0;taskTarget=null;tutorialStep=0;playerHasMoved=false;pickupTutorialDone=false;roomTutorialDone=false;O('crouchind').style.opacity='0';O('hpwrap').style.display='block';O('stwrap').style.display='block';O('stumble').style.opacity='0';O('taskprog').style.opacity='0';O('warning').style.opacity='0';O('tutorial').style.opacity='0';O('keyshint').style.opacity='0';
   tasksCompleted={gasOff:false,firstAid:false,childRescued:false};spawnSafeZones();spawnPickups();
@@ -2348,12 +2411,12 @@ function startGame(){phase='wake';won=false;quakeT=0;shake=0;clearHazards();play
   wakeMsg('凌晨 4:12……\n地面在震动。');
   setTimeout(()=>{if(phase!=='wake')return;phase='quake';crash();rumble(0.9);stats.quakeMs=performance.now();setObj('🚨 地震!别往外冲——退到床边发光圈蹲下,护住头颈!');},2600);}
 const downRay=new THREE.Raycaster(),wallRay=new THREE.Raycaster();
-renderer.domElement.addEventListener('click',()=>{if(!locked&&!won)renderer.domElement.requestPointerLock&&renderer.domElement.requestPointerLock();});
-document.addEventListener('pointerlockchange',()=>locked=document.pointerLockElement===renderer.domElement);
+renderer.domElement.addEventListener('click',()=>{if(!isMobile&&!locked&&!won)if(!isMobile)renderer.domElement.requestPointerLock&&renderer.domElement.requestPointerLock();});
+document.addEventListener('pointerlockchange',()=>{if(!isMobile)locked=document.pointerLockElement===renderer.domElement;});
 document.addEventListener('mousemove',e=>{if(!locked)return;yaw-=e.movementX*0.0022;pitch-=e.movementY*0.0022;pitch=Math.max(-1.3,Math.min(1.3,pitch));});
 addEventListener('keydown',e=>keys[e.code]=true);addEventListener('keyup',e=>keys[e.code]=false);
-document.getElementById('b').onclick=()=>{initAudio();document.getElementById('start').style.display='none';renderer.domElement.requestPointerLock&&renderer.domElement.requestPointerLock();startGame();};
-O('dretry').onclick=()=>{startGame();renderer.domElement.requestPointerLock&&renderer.domElement.requestPointerLock();};
+document.getElementById('b').onclick=()=>{initAudio();document.getElementById('start').style.display='none';if(!isMobile)if(!isMobile)renderer.domElement.requestPointerLock&&renderer.domElement.requestPointerLock();startGame();};
+O('dretry').onclick=()=>{startGame();if(!isMobile)renderer.domElement.requestPointerLock&&renderer.domElement.requestPointerLock();};
 function canMove(from,to){const dir=new THREE.Vector3().subVectors(to,from);const dist=dir.length();if(dist<1e-5)return true;dir.normalize();
   wallRay.set(new THREE.Vector3(from.x,from.y-0.7,from.z),dir);wallRay.far=dist+0.3;return wallRay.intersectObjects(walls,false).length===0;}
 const clock=new THREE.Clock();
@@ -2419,7 +2482,7 @@ function stepGame(dt){
   const isMovingT=keys['KeyW']||keys['KeyA']||keys['KeyS']||keys['KeyD'];
   if(tutorialStep===0&&phase==='quake'&&!playerHasMoved){
     if(isMovingT){playerHasMoved=true;hideTutorial();O('keyshint').style.opacity='0';setObj('🚨 地震!别往外冲——退到床边发光圈蹲下,护住头颈!');}
-    else{setObj('');showTutorial('地震突发！\n请操控角色移动，逃离危险区域');O('keyshint').innerHTML='<b>W A S D</b> 移动';O('keyshint').style.opacity='1';}
+    else{setObj('');showTutorial('地震突发！\n请操控角色移动，逃离危险区域');O('keyshint').innerHTML=isMobile?'<b>⬅ 摇杆</b> 移动':'<b>W A S D</b> 移动';O('keyshint').style.opacity='1';}
   }
   if(playerHasMoved&&!pickupTutorialDone){
     if(nearP){showTutorial(nearP.userData.t==='medkit'?'💊 医疗包 → 恢复生命值':'💧 能量饮料 → 恢复体力值');}
